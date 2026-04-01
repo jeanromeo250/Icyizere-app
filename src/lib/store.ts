@@ -1,5 +1,8 @@
-// In-memory store for MVP (will be replaced with Lovable Cloud later)
-import { useState, useEffect } from "react";
+// Supabase-backed store hooks — no more localStorage / demo data
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// ---------- Types ----------
 
 export interface Product {
   id: string;
@@ -38,96 +41,299 @@ export interface StockEntry {
   note: string;
 }
 
-const DEMO_PRODUCTS: Product[] = [
-  { id: "1", name: "Wireless Earbuds", price: 29.99, stock: 45, category: "Electronics", minStock: 10 },
-  { id: "2", name: "Phone Case", price: 12.99, stock: 120, category: "Accessories", minStock: 20 },
-  { id: "3", name: "USB-C Cable", price: 8.99, stock: 5, category: "Electronics", minStock: 15 },
-  { id: "4", name: "Screen Protector", price: 6.99, stock: 200, category: "Accessories", minStock: 30 },
-  { id: "5", name: "Bluetooth Speaker", price: 45.99, stock: 18, category: "Electronics", minStock: 10 },
-  { id: "6", name: "Laptop Stand", price: 34.99, stock: 3, category: "Office", minStock: 5 },
-];
+// ---------- Helper ----------
 
-const DEMO_SALES: Sale[] = [
-  { id: "1", productId: "1", productName: "Wireless Earbuds", quantity: 2, total: 59.98, date: "2026-03-29", employeeName: "John" },
-  { id: "2", productId: "2", productName: "Phone Case", quantity: 5, total: 64.95, date: "2026-03-29", employeeName: "Sarah" },
-  { id: "3", productId: "5", productName: "Bluetooth Speaker", quantity: 1, total: 45.99, date: "2026-03-29", employeeName: "John" },
-  { id: "4", productId: "4", productName: "Screen Protector", quantity: 3, total: 20.97, date: "2026-03-28", employeeName: "Sarah" },
-];
-
-const DEMO_EXPENSES: Expense[] = [
-  { id: "1", category: "Rent", amount: 1200, description: "Monthly rent", date: "2026-03-01" },
-  { id: "2", category: "Electricity", amount: 180, description: "March bill", date: "2026-03-15" },
-  { id: "3", category: "Water", amount: 45, description: "March bill", date: "2026-03-15" },
-];
-
-const DEMO_STOCK_ENTRIES: StockEntry[] = [
-  { id: "1", productId: "1", productName: "Wireless Earbuds", type: "in", quantity: 50, date: "2026-03-25", note: "Supplier delivery" },
-  { id: "2", productId: "1", productName: "Wireless Earbuds", type: "out", quantity: 2, date: "2026-03-29", note: "Sale" },
-  { id: "3", productId: "3", productName: "USB-C Cable", type: "out", quantity: 10, date: "2026-03-28", note: "Sale" },
-];
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
-  } catch {
-    return fallback;
-  }
+async function getUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
 }
 
-function saveToStorage<T>(key: string, data: T) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
+// ---------- useProducts ----------
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>(() => loadFromStorage("eshop_products", DEMO_PRODUCTS));
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { saveToStorage("eshop_products", products); }, [products]);
+  const fetchProducts = useCallback(async () => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setProducts(
+        data.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          price: Number(r.price),
+          stock: Number(r.stock),
+          category: r.category ?? "General",
+          minStock: Number(r.min_stock ?? 10),
+        }))
+      );
+    }
+    setLoading(false);
+  }, []);
 
-  const addProduct = (p: Omit<Product, "id">) => {
-    setProducts(prev => [...prev, { ...p, id: Date.now().toString() }]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const addProduct = async (p: Omit<Product, "id">) => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        name: p.name,
+        price: p.price,
+        stock: p.stock,
+        category: p.category,
+        min_stock: p.minStock,
+        user_id: userId,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setProducts((prev) => [
+        {
+          id: data.id,
+          name: data.name,
+          price: Number(data.price),
+          stock: Number(data.stock),
+          category: data.category ?? "General",
+          minStock: Number(data.min_stock ?? 10),
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  const updateProduct = (id: string, p: Partial<Product>) => {
-    setProducts(prev => prev.map(item => item.id === id ? { ...item, ...p } : item));
+  const updateProduct = async (id: string, p: Partial<Product>) => {
+    const updates: any = {};
+    if (p.name !== undefined) updates.name = p.name;
+    if (p.price !== undefined) updates.price = p.price;
+    if (p.stock !== undefined) updates.stock = p.stock;
+    if (p.category !== undefined) updates.category = p.category;
+    if (p.minStock !== undefined) updates.min_stock = p.minStock;
+
+    const { error } = await supabase.from("products").update(updates).eq("id", id);
+    if (!error) {
+      setProducts((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...p } : item))
+      );
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(item => item.id !== id));
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (!error) {
+      setProducts((prev) => prev.filter((item) => item.id !== id));
+    }
   };
 
-  return { products, addProduct, updateProduct, deleteProduct, setProducts };
+  return { products, addProduct, updateProduct, deleteProduct, setProducts, loading };
 }
+
+// ---------- useSales ----------
 
 export function useSales() {
-  const [sales, setSales] = useState<Sale[]>(() => loadFromStorage("eshop_sales", DEMO_SALES));
-  useEffect(() => { saveToStorage("eshop_sales", sales); }, [sales]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addSale = (s: Omit<Sale, "id">) => {
-    setSales(prev => [...prev, { ...s, id: Date.now().toString() }]);
+  const fetchSales = useCallback(async () => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setSales(
+        data.map((r: any) => ({
+          id: r.id,
+          productId: r.product_id,
+          productName: r.product_name,
+          quantity: Number(r.quantity),
+          total: Number(r.total),
+          date: r.date,
+          employeeName: r.employee_name ?? "Unknown",
+        }))
+      );
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
+
+  const addSale = async (s: Omit<Sale, "id">) => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("sales")
+      .insert({
+        product_id: s.productId,
+        product_name: s.productName,
+        quantity: s.quantity,
+        total: s.total,
+        date: s.date,
+        employee_name: s.employeeName,
+        user_id: userId,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setSales((prev) => [
+        {
+          id: data.id,
+          productId: data.product_id,
+          productName: data.product_name,
+          quantity: Number(data.quantity),
+          total: Number(data.total),
+          date: data.date,
+          employeeName: data.employee_name ?? "Unknown",
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  return { sales, addSale };
+  return { sales, addSale, loading };
 }
+
+// ---------- useExpenses ----------
 
 export function useExpenses() {
-  const [expenses, setExpenses] = useState<Expense[]>(() => loadFromStorage("eshop_expenses", DEMO_EXPENSES));
-  useEffect(() => { saveToStorage("eshop_expenses", expenses); }, [expenses]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addExpense = (e: Omit<Expense, "id">) => {
-    setExpenses(prev => [...prev, { ...e, id: Date.now().toString() }]);
+  const fetchExpenses = useCallback(async () => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setExpenses(
+        data.map((r: any) => ({
+          id: r.id,
+          category: r.category,
+          amount: Number(r.amount),
+          description: r.description ?? "",
+          date: r.date,
+        }))
+      );
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  const addExpense = async (e: Omit<Expense, "id">) => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("expenses")
+      .insert({
+        category: e.category,
+        amount: e.amount,
+        description: e.description,
+        date: e.date,
+        user_id: userId,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setExpenses((prev) => [
+        {
+          id: data.id,
+          category: data.category,
+          amount: Number(data.amount),
+          description: data.description ?? "",
+          date: data.date,
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  return { expenses, addExpense };
+  return { expenses, addExpense, loading };
 }
 
-export function useStockEntries() {
-  const [entries, setEntries] = useState<StockEntry[]>(() => loadFromStorage("eshop_stock", DEMO_STOCK_ENTRIES));
-  useEffect(() => { saveToStorage("eshop_stock", entries); }, [entries]);
+// ---------- useStockEntries ----------
 
-  const addEntry = (e: Omit<StockEntry, "id">) => {
-    setEntries(prev => [...prev, { ...e, id: Date.now().toString() }]);
+export function useStockEntries() {
+  const [entries, setEntries] = useState<StockEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchEntries = useCallback(async () => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data } = await supabase
+      .from("stock_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setEntries(
+        data.map((r: any) => ({
+          id: r.id,
+          productId: r.product_id,
+          productName: r.product_name,
+          type: r.type as "in" | "out",
+          quantity: Number(r.quantity),
+          date: r.date,
+          note: r.note ?? "",
+        }))
+      );
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
+
+  const addEntry = async (e: Omit<StockEntry, "id">) => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("stock_entries")
+      .insert({
+        product_id: e.productId,
+        product_name: e.productName,
+        type: e.type,
+        quantity: e.quantity,
+        date: e.date,
+        note: e.note,
+        user_id: userId,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setEntries((prev) => [
+        {
+          id: data.id,
+          productId: data.product_id,
+          productName: data.product_name,
+          type: data.type as "in" | "out",
+          quantity: Number(data.quantity),
+          date: data.date,
+          note: data.note ?? "",
+        },
+        ...prev,
+      ]);
+    }
   };
 
-  return { entries, addEntry };
+  return { entries, addEntry, loading };
 }
