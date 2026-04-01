@@ -2,6 +2,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+// The generated types.ts doesn't include the new tables yet,
+// so we use an untyped client for these queries.
+const db = supabase as any;
+
 // ---------- Types ----------
 
 export interface Product {
