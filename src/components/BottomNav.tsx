@@ -8,6 +8,7 @@ const baseItems = [
   { icon: Package, label: "Products", path: "/products" },
   { icon: ArrowLeftRight, label: "Stock", path: "/stock" },
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
+  { icon: Receipt, label: "Expenses", path: "/expenses" },
 ];
 
 export default function BottomNav() {
@@ -22,7 +23,7 @@ export default function BottomNav() {
     ...baseItems,
     ...(role === "manager"
       ? [{ icon: Users, label: "Team", path: "/employees" }]
-      : [{ icon: Receipt, label: "Expenses", path: "/expenses" }]),
+      : []),
   ];
 
   return (
@@ -35,7 +36,7 @@ export default function BottomNav() {
               key={path}
               onClick={() => navigate(path)}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
+                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all",
                 active
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
