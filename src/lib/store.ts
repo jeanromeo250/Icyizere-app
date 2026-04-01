@@ -1,10 +1,13 @@
 // Supabase-backed store hooks — no more localStorage / demo data
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 
-// The generated types.ts doesn't include the new tables yet,
-// so we use an untyped client for these queries.
-const db = supabase as any;
+// Untyped client for tables not yet in generated types
+const db = createClient(
+  "https://qdtdzkahltojqgjrqezc.supabase.co",
+  "sb_publishable_1Uw8INt9gaMDpupVnw91Mg_kemNeWGc",
+  { auth: { storage: localStorage, persistSession: true, autoRefreshToken: true } }
+);
 
 // ---------- Types ----------
 
@@ -48,7 +51,7 @@ export interface StockEntry {
 // ---------- Helper ----------
 
 async function getUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await db.auth.getUser();
   return data.user?.id ?? null;
 }
 
