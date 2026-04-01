@@ -11,6 +11,14 @@ const baseItems = [
   { icon: Receipt, label: "Expenses", path: "/expenses" },
 ];
 
+export default function BottomNav() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { role } = useAuth();
+
+  const hiddenPaths = ["/login", "/register"];
+  if (hiddenPaths.includes(location.pathname)) return null;
+
   const navItems = [
     ...baseItems,
     ...(role === "manager"
@@ -28,7 +36,7 @@ const baseItems = [
               key={path}
               onClick={() => navigate(path)}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
+                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all",
                 active
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
