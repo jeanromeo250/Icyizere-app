@@ -41,15 +41,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (userId: string) => {
-    const [profileRes, roleRes, permRes] = await Promise.all([
+    const [profileRes, permRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
-      supabase.from("user_roles").select("role").eq("user_id", userId).single(),
       supabase.from("employee_permissions").select("*").eq("employee_user_id", userId).single(),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
-    if (roleRes.data) setRole(roleRes.data.role as AppRole);
     if (permRes.data) setPermissions(permRes.data);
+
+    // Try user_roles table first, fall back to user_metadata.role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    if (roleData?.role) {
+      setRole(roleData.role as AppRole);
+    } else {
+      // Fall back to role from auth user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      const metaRole = user?.user_metadata?.role as string;
+      setRole((metaRole === "manager" || metaRole === "employee") ? metaRole : "employee");
+    }
   };
 
   const refreshProfile = async () => {
