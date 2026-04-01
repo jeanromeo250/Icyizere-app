@@ -51,7 +51,7 @@ export interface StockEntry {
 // ---------- Helper ----------
 
 async function getUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await db.auth.getUser();
   return data.user?.id ?? null;
 }
 
