@@ -61,7 +61,7 @@ export function useProducts() {
   const fetchProducts = useCallback(async () => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data } = await supabase
+    const { data } = await db
       .from("products")
       .select("*")
       .eq("user_id", userId)
@@ -88,7 +88,7 @@ export function useProducts() {
   const addProduct = async (p: Omit<Product, "id">) => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("products")
       .insert({
         name: p.name,
@@ -150,7 +150,7 @@ export function useSales() {
   const fetchSales = useCallback(async () => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data } = await supabase
+    const { data } = await db
       .from("sales")
       .select("*")
       .eq("user_id", userId)
@@ -178,7 +178,7 @@ export function useSales() {
   const addSale = async (s: Omit<Sale, "id">) => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("sales")
       .insert({
         product_id: s.productId,
@@ -219,7 +219,7 @@ export function useExpenses() {
   const fetchExpenses = useCallback(async () => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data } = await supabase
+    const { data } = await db
       .from("expenses")
       .select("*")
       .eq("user_id", userId)
@@ -245,7 +245,7 @@ export function useExpenses() {
   const addExpense = async (e: Omit<Expense, "id">) => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("expenses")
       .insert({
         category: e.category,
@@ -282,7 +282,7 @@ export function useStockEntries() {
   const fetchEntries = useCallback(async () => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data } = await supabase
+    const { data } = await db
       .from("stock_entries")
       .select("*")
       .eq("user_id", userId)
@@ -310,7 +310,7 @@ export function useStockEntries() {
   const addEntry = async (e: Omit<StockEntry, "id">) => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("stock_entries")
       .insert({
         product_id: e.productId,
