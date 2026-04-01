@@ -8,21 +8,14 @@ const baseItems = [
   { icon: Package, label: "Products", path: "/products" },
   { icon: ArrowLeftRight, label: "Stock", path: "/stock" },
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
+  { icon: Receipt, label: "Expenses", path: "/expenses" },
 ];
-
-export default function BottomNav() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { role } = useAuth();
-
-  const hiddenPaths = ["/login", "/register"];
-  if (hiddenPaths.includes(location.pathname)) return null;
 
   const navItems = [
     ...baseItems,
     ...(role === "manager"
       ? [{ icon: Users, label: "Team", path: "/employees" }]
-      : [{ icon: Receipt, label: "Expenses", path: "/expenses" }]),
+      : []),
   ];
 
   return (
