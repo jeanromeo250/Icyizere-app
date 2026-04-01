@@ -123,7 +123,7 @@ export function useProducts() {
     if (p.category !== undefined) updates.category = p.category;
     if (p.minStock !== undefined) updates.min_stock = p.minStock;
 
-    const { error } = await supabase.from("products").update(updates).eq("id", id);
+    const { error } = await db.from("products").update(updates).eq("id", id);
     if (!error) {
       setProducts((prev) =>
         prev.map((item) => (item.id === id ? { ...item, ...p } : item))
@@ -132,7 +132,7 @@ export function useProducts() {
   };
 
   const deleteProduct = async (id: string) => {
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    const { error } = await db.from("products").delete().eq("id", id);
     if (!error) {
       setProducts((prev) => prev.filter((item) => item.id !== id));
     }
