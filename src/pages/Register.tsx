@@ -45,7 +45,8 @@ export default function Register() {
       return;
     }
 
-    toast.success("Account created! You can now sign in.");
+    // Check if email confirmation is required
+    toast.success("Account created! Please check your email and click the confirmation link before signing in.", { duration: 8000 });
     navigate("/login");
   };
 
