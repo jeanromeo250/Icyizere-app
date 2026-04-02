@@ -223,7 +223,6 @@ export function useExpenses() {
     const { data } = await db
       .from("expenses")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setExpenses(
