@@ -90,8 +90,8 @@ export default function Employees() {
       const prof = profiles?.find((p) => p.user_id === ep.employee_user_id);
       return {
         employee_user_id: ep.employee_user_id,
-        full_name: prof?.full_name || "Unknown",
-        email: "",
+        full_name: prof?.full_name || "Unknown Employee",
+        email: prof?.phone || "",
         can_add_stock: ep.can_add_stock,
         can_remove_stock: ep.can_remove_stock,
         can_view_products: ep.can_view_products,
@@ -137,6 +137,21 @@ export default function Employees() {
 
     const employeeUserId = signUpData.user.id;
 
+    // Create profile for the employee
+    await supabase.from("profiles").upsert({
+      user_id: employeeUserId,
+      full_name: fullName,
+      business_name: null,
+      phone: null,
+      location: null,
+    });
+
+    // Insert role
+    await supabase.from("user_roles").upsert({
+      user_id: employeeUserId,
+      role: "employee",
+    });
+
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
 
@@ -149,11 +164,9 @@ export default function Employees() {
     if (permError) {
       toast.error("Account created but failed to set permissions: " + permError.message);
     } else {
-      toast.success(`Employee ${fullName} created successfully!`);
+      toast.success(`Employee ${fullName} created! They'll receive a confirmation email.`);
     }
 
-    // Re-sign in as manager since signUp changes the session
-    // We need the manager to stay logged in
     setCreateOpen(false);
     setLoading(false);
     setFullAccess(false);
@@ -291,11 +304,18 @@ export default function Employees() {
               {employees.map((emp) => (
                 <div key={emp.employee_user_id} className="border border-border rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Object.entries(PERMISSION_LABELS).filter(([k]) => emp[k as keyof typeof emp]).length} permissions
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">
+                          {emp.full_name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {Object.entries(PERMISSION_LABELS).filter(([k]) => emp[k as keyof typeof emp]).length}/10 permissions
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
