@@ -90,8 +90,8 @@ export default function Employees() {
       const prof = profiles?.find((p) => p.user_id === ep.employee_user_id);
       return {
         employee_user_id: ep.employee_user_id,
-        full_name: prof?.full_name || "Unknown",
-        email: "",
+        full_name: prof?.full_name || "Unknown Employee",
+        email: prof?.phone || "",
         can_add_stock: ep.can_add_stock,
         can_remove_stock: ep.can_remove_stock,
         can_view_products: ep.can_view_products,
