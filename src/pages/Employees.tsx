@@ -304,11 +304,18 @@ export default function Employees() {
               {employees.map((emp) => (
                 <div key={emp.employee_user_id} className="border border-border rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Object.entries(PERMISSION_LABELS).filter(([k]) => emp[k as keyof typeof emp]).length} permissions
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">
+                          {emp.full_name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {Object.entries(PERMISSION_LABELS).filter(([k]) => emp[k as keyof typeof emp]).length}/10 permissions
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
