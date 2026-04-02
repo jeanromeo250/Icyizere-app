@@ -8,7 +8,8 @@ export default function Dashboard() {
   const { sales } = useSales();
   const { expenses } = useExpenses();
 
-  const todaySales = sales.filter(s => s.date === "2026-03-29");
+  const today = new Date().toISOString().split("T")[0];
+  const todaySales = sales.filter(s => s.date === today);
   const totalRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalProducts = products.reduce((sum, p) => sum + p.stock, 0);
