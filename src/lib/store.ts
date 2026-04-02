@@ -67,7 +67,6 @@ export function useProducts() {
     const { data } = await db
       .from("products")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setProducts(
@@ -156,7 +155,6 @@ export function useSales() {
     const { data } = await db
       .from("sales")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setSales(
@@ -225,7 +223,6 @@ export function useExpenses() {
     const { data } = await db
       .from("expenses")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setExpenses(
@@ -288,7 +285,6 @@ export function useStockEntries() {
     const { data } = await db
       .from("stock_entries")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setEntries(

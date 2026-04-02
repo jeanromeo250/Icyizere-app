@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Receipt, Users } from "lucide-react";
+import { LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Receipt, Users, BarChart3 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 const baseItems = [
   { icon: LayoutDashboard, label: "Home", path: "/" },
   { icon: Package, label: "Products", path: "/products" },
-  { icon: ArrowLeftRight, label: "Stock", path: "/stock" },
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
   { icon: Receipt, label: "Expenses", path: "/expenses" },
 ];
@@ -22,7 +21,10 @@ export default function BottomNav() {
   const navItems = [
     ...baseItems,
     ...(role === "manager"
-      ? [{ icon: Users, label: "Team", path: "/employees" }]
+      ? [
+          { icon: BarChart3, label: "Reports", path: "/reports" },
+          { icon: Users, label: "Team", path: "/employees" },
+        ]
       : []),
   ];
 
