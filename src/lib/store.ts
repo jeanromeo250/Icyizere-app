@@ -67,7 +67,6 @@ export function useProducts() {
     const { data } = await db
       .from("products")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setProducts(
