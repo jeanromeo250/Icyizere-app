@@ -137,6 +137,21 @@ export default function Employees() {
 
     const employeeUserId = signUpData.user.id;
 
+    // Create profile for the employee
+    await supabase.from("profiles").upsert({
+      user_id: employeeUserId,
+      full_name: fullName,
+      business_name: null,
+      phone: null,
+      location: null,
+    });
+
+    // Insert role
+    await supabase.from("user_roles").upsert({
+      user_id: employeeUserId,
+      role: "employee",
+    });
+
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
 
@@ -149,11 +164,9 @@ export default function Employees() {
     if (permError) {
       toast.error("Account created but failed to set permissions: " + permError.message);
     } else {
-      toast.success(`Employee ${fullName} created successfully!`);
+      toast.success(`Employee ${fullName} created! They'll receive a confirmation email.`);
     }
 
-    // Re-sign in as manager since signUp changes the session
-    // We need the manager to stay logged in
     setCreateOpen(false);
     setLoading(false);
     setFullAccess(false);
