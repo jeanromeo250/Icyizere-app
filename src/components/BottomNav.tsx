@@ -21,7 +21,10 @@ export default function BottomNav() {
   const navItems = [
     ...baseItems,
     ...(role === "manager"
-      ? [{ icon: Users, label: "Team", path: "/employees" }]
+      ? [
+          { icon: BarChart3, label: "Reports", path: "/reports" },
+          { icon: Users, label: "Team", path: "/employees" },
+        ]
       : []),
   ];
 
