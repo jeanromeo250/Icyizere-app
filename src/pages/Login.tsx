@@ -25,7 +25,11 @@ export default function Login() {
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message === "Invalid login credentials") {
+        toast.error("Invalid email or password. If you just registered, please check your email and confirm your account first.");
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
 
