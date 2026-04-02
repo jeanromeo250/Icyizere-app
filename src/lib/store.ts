@@ -155,7 +155,6 @@ export function useSales() {
     const { data } = await db
       .from("sales")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setSales(
