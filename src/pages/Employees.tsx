@@ -117,6 +117,9 @@ export default function Employees() {
     const password = fd.get("password") as string;
     const fullName = fd.get("fullName") as string;
 
+    // Save manager's current session before signUp switches it
+    const { data: { session: managerSession } } = await supabase.auth.getSession();
+
     // Create the employee account via Supabase auth
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -131,14 +134,29 @@ export default function Employees() {
 
     if (signUpError || !signUpData.user) {
       toast.error(signUpError?.message || "Failed to create employee account");
+      // Restore manager session
+      if (managerSession) {
+        await supabase.auth.setSession({
+          access_token: managerSession.access_token,
+          refresh_token: managerSession.refresh_token,
+        });
+      }
       setLoading(false);
       return;
     }
 
     const employeeUserId = signUpData.user.id;
 
+    // Restore manager session so we can insert profile/permissions as manager
+    if (managerSession) {
+      await supabase.auth.setSession({
+        access_token: managerSession.access_token,
+        refresh_token: managerSession.refresh_token,
+      });
+    }
+
     // Create profile for the employee
-    await supabase.from("profiles").upsert({
+    const { error: profileError } = await supabase.from("profiles").upsert({
       user_id: employeeUserId,
       full_name: fullName,
       business_name: null,
@@ -146,11 +164,19 @@ export default function Employees() {
       location: null,
     });
 
+    if (profileError) {
+      console.error("Profile insert error:", profileError);
+    }
+
     // Insert role
-    await supabase.from("user_roles").upsert({
+    const { error: roleError } = await supabase.from("user_roles").upsert({
       user_id: employeeUserId,
       role: "employee",
     });
+
+    if (roleError) {
+      console.error("Role insert error:", roleError);
+    }
 
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
