@@ -285,7 +285,6 @@ export function useStockEntries() {
     const { data } = await db
       .from("stock_entries")
       .select("*")
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
       setEntries(
