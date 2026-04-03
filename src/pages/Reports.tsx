@@ -98,10 +98,10 @@ export default function Reports() {
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard title="Total Sales" value={`$${totalSales.toFixed(2)}`} icon={DollarSign} variant="success" trend={`${filtered.sales.length} transactions`} />
-              <StatCard title="Total Expenses" value={`$${totalExpenses.toFixed(2)}`} icon={TrendingDown} variant="destructive" trend={`${filtered.expenses.length} entries`} />
-              <StatCard title="Net Profit" value={`$${netProfit.toFixed(2)}`} icon={TrendingUp} variant={netProfit >= 0 ? "success" : "destructive"} />
-              <StatCard title="Est. Tax (18%)" value={`$${estimatedTax.toFixed(2)}`} icon={Receipt} variant="warning" trend={`After tax: $${afterTax.toFixed(2)}`} />
+              <StatCard title="Total Sales" value={`RWF ${totalSales.toLocaleString()}`} icon={DollarSign} variant="success" trend={`${filtered.sales.length} transactions`} />
+              <StatCard title="Total Expenses" value={`RWF ${totalExpenses.toLocaleString()}`} icon={TrendingDown} variant="destructive" trend={`${filtered.expenses.length} entries`} />
+              <StatCard title="Net Profit" value={`RWF ${netProfit.toLocaleString()}`} icon={TrendingUp} variant={netProfit >= 0 ? "success" : "destructive"} />
+              <StatCard title="Est. Tax (18%)" value={`RWF ${estimatedTax.toLocaleString()}`} icon={Receipt} variant="warning" trend={`After tax: RWF ${afterTax.toLocaleString()}`} />
             </div>
 
             {/* Sales vs Expenses Bar */}
