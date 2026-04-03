@@ -25,14 +25,14 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             title="Revenue"
-            value={`$${totalRevenue.toFixed(2)}`}
+            value={`RWF ${totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             variant="success"
             trend={`${todaySales.length} sales today`}
           />
           <StatCard
             title="Expenses"
-            value={`$${totalExpenses.toFixed(2)}`}
+            value={`RWF ${totalExpenses.toLocaleString()}`}
             icon={ArrowDownRight}
             variant="destructive"
             trend="This month"
@@ -45,7 +45,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Profit"
-            value={`$${profit.toFixed(2)}`}
+            value={`RWF ${profit.toLocaleString()}`}
             icon={TrendingUp}
             variant={profit >= 0 ? "success" : "destructive"}
           />
