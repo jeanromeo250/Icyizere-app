@@ -180,7 +180,7 @@ export default function Notifications() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-success/30 bg-success/5 p-3">
             <p className="text-xs text-muted-foreground font-medium">Total Sold</p>
-            <p className="text-lg font-bold text-success">${totalSalesRevenue.toFixed(2)}</p>
+            <p className="text-lg font-bold text-success">RWF {totalSalesRevenue.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{todaySales.length} sales</p>
           </div>
           <div className="rounded-xl border border-warning/30 bg-warning/5 p-3">
