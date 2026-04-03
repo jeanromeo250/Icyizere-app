@@ -34,7 +34,7 @@ export default function Expenses() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Expenses" subtitle={`$${totalExpenses.toFixed(2)} total`} />
+      <PageHeader title="Expenses" subtitle={`RWF ${totalExpenses.toLocaleString()} total`} />
 
       <div className="px-4 space-y-4 mt-2">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
