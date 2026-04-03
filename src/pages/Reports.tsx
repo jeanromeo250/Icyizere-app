@@ -114,7 +114,7 @@ export default function Reports() {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">Sales</span>
-                    <span className="font-medium text-success">${totalSales.toFixed(2)}</span>
+                    <span className="font-medium text-success">RWF {totalSales.toLocaleString()}</span>
                   </div>
                   <div className="h-3 rounded-full bg-muted overflow-hidden">
                     <div
