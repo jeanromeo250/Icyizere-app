@@ -43,7 +43,7 @@ export default function Notifications() {
       icon: ShoppingCart,
       title: "Today's Sales",
       description: `${todaySales.length} sale(s) recorded today`,
-      value: `$${totalSalesRevenue.toFixed(2)}`,
+      value: `RWF ${totalSalesRevenue.toLocaleString()}`,
       variant: "success",
       time: "Today",
     });
@@ -54,7 +54,7 @@ export default function Notifications() {
         icon: TrendingUp,
         title: `Sold: ${sale.productName}`,
         description: `Qty: ${sale.quantity} · by ${sale.employeeName}`,
-        value: `$${sale.total.toFixed(2)}`,
+        value: `RWF ${sale.total.toLocaleString()}`,
         variant: "success",
         time: sale.date,
       });
@@ -116,7 +116,7 @@ export default function Notifications() {
       icon: Receipt,
       title: "Today's Expenses",
       description: `${todayExpenses.length} expense(s) recorded`,
-      value: `$${totalExpensesAmount.toFixed(2)}`,
+      value: `RWF ${totalExpensesAmount.toLocaleString()}`,
       variant: "warning",
       time: "Today",
     });
@@ -126,7 +126,7 @@ export default function Notifications() {
         icon: FileText,
         title: `Expense: ${exp.category}`,
         description: exp.description,
-        value: `$${exp.amount.toFixed(2)}`,
+        value: `RWF ${exp.amount.toLocaleString()}`,
         variant: "warning",
         time: exp.date,
       });
@@ -180,12 +180,12 @@ export default function Notifications() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-success/30 bg-success/5 p-3">
             <p className="text-xs text-muted-foreground font-medium">Total Sold</p>
-            <p className="text-lg font-bold text-success">${totalSalesRevenue.toFixed(2)}</p>
+            <p className="text-lg font-bold text-success">RWF {totalSalesRevenue.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{todaySales.length} sales</p>
           </div>
           <div className="rounded-xl border border-warning/30 bg-warning/5 p-3">
             <p className="text-xs text-muted-foreground font-medium">Expenses</p>
-            <p className="text-lg font-bold text-warning">${totalExpensesAmount.toFixed(2)}</p>
+            <p className="text-lg font-bold text-warning">RWF {totalExpensesAmount.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{todayExpenses.length} entries</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-3">

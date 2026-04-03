@@ -98,10 +98,10 @@ export default function Reports() {
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard title="Total Sales" value={`$${totalSales.toFixed(2)}`} icon={DollarSign} variant="success" trend={`${filtered.sales.length} transactions`} />
-              <StatCard title="Total Expenses" value={`$${totalExpenses.toFixed(2)}`} icon={TrendingDown} variant="destructive" trend={`${filtered.expenses.length} entries`} />
-              <StatCard title="Net Profit" value={`$${netProfit.toFixed(2)}`} icon={TrendingUp} variant={netProfit >= 0 ? "success" : "destructive"} />
-              <StatCard title="Est. Tax (18%)" value={`$${estimatedTax.toFixed(2)}`} icon={Receipt} variant="warning" trend={`After tax: $${afterTax.toFixed(2)}`} />
+              <StatCard title="Total Sales" value={`RWF ${totalSales.toLocaleString()}`} icon={DollarSign} variant="success" trend={`${filtered.sales.length} transactions`} />
+              <StatCard title="Total Expenses" value={`RWF ${totalExpenses.toLocaleString()}`} icon={TrendingDown} variant="destructive" trend={`${filtered.expenses.length} entries`} />
+              <StatCard title="Net Profit" value={`RWF ${netProfit.toLocaleString()}`} icon={TrendingUp} variant={netProfit >= 0 ? "success" : "destructive"} />
+              <StatCard title="Est. Tax (18%)" value={`RWF ${estimatedTax.toLocaleString()}`} icon={Receipt} variant="warning" trend={`After tax: RWF ${afterTax.toLocaleString()}`} />
             </div>
 
             {/* Sales vs Expenses Bar */}
@@ -114,7 +114,7 @@ export default function Reports() {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">Sales</span>
-                    <span className="font-medium text-success">${totalSales.toFixed(2)}</span>
+                    <span className="font-medium text-success">RWF {totalSales.toLocaleString()}</span>
                   </div>
                   <div className="h-3 rounded-full bg-muted overflow-hidden">
                     <div
@@ -126,7 +126,7 @@ export default function Reports() {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">Expenses</span>
-                    <span className="font-medium text-destructive">${totalExpenses.toFixed(2)}</span>
+                    <span className="font-medium text-destructive">RWF {totalExpenses.toLocaleString()}</span>
                   </div>
                   <div className="h-3 rounded-full bg-muted overflow-hidden">
                     <div
@@ -155,7 +155,7 @@ export default function Reports() {
                         <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-destructive/70" style={{ width: `${(amount / totalExpenses) * 100}%` }} />
                         </div>
-                        <span className="font-medium text-destructive w-20 text-right">${amount.toFixed(2)}</span>
+                        <span className="font-medium text-destructive w-24 text-right">RWF {amount.toLocaleString()}</span>
                       </div>
                     </div>
                   ))}
@@ -172,24 +172,24 @@ export default function Reports() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gross Revenue</span>
-                  <span className="font-medium text-foreground">${totalSales.toFixed(2)}</span>
+                  <span className="font-medium text-foreground">RWF {totalSales.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Deductions</span>
-                  <span className="font-medium text-destructive">-${totalExpenses.toFixed(2)}</span>
+                  <span className="font-medium text-destructive">-RWF {totalExpenses.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taxable Income</span>
-                  <span className="font-medium text-foreground">${netProfit.toFixed(2)}</span>
+                  <span className="font-medium text-foreground">RWF {netProfit.toLocaleString()}</span>
                 </div>
                 <div className="border-t border-border my-1" />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Estimated Tax (18%)</span>
-                  <span className="font-bold text-warning">${estimatedTax.toFixed(2)}</span>
+                  <span className="font-bold text-warning">RWF {estimatedTax.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-semibold">Profit After Tax</span>
-                  <span className={`font-bold ${afterTax >= 0 ? "text-success" : "text-destructive"}`}>${afterTax.toFixed(2)}</span>
+                  <span className={`font-bold ${afterTax >= 0 ? "text-success" : "text-destructive"}`}>RWF {afterTax.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function Reports() {
                         <span className="text-foreground font-medium">{name}</span>
                         <span className="text-xs text-muted-foreground ml-2">×{data.qty}</span>
                       </div>
-                      <span className="font-semibold text-success">${data.total.toFixed(2)}</span>
+                      <span className="font-semibold text-success">RWF {data.total.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>

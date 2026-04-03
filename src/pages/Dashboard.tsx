@@ -18,21 +18,21 @@ export default function Dashboard() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Dashboard" subtitle="Today's Overview" showNotification />
+      <PageHeader title="ICYIZERE-BUSINESS" subtitle="Today's Overview" showNotification />
 
       <div className="px-4 space-y-4 mt-2">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             title="Revenue"
-            value={`$${totalRevenue.toFixed(2)}`}
+            value={`RWF ${totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             variant="success"
             trend={`${todaySales.length} sales today`}
           />
           <StatCard
             title="Expenses"
-            value={`$${totalExpenses.toFixed(2)}`}
+            value={`RWF ${totalExpenses.toLocaleString()}`}
             icon={ArrowDownRight}
             variant="destructive"
             trend="This month"
@@ -45,7 +45,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Profit"
-            value={`$${profit.toFixed(2)}`}
+            value={`RWF ${profit.toLocaleString()}`}
             icon={TrendingUp}
             variant={profit >= 0 ? "success" : "destructive"}
           />
@@ -85,7 +85,7 @@ export default function Dashboard() {
                   <p className="font-medium text-foreground">{sale.productName}</p>
                   <p className="text-xs text-muted-foreground">Qty: {sale.quantity} · {sale.employeeName}</p>
                 </div>
-                <span className="font-semibold text-success">${sale.total.toFixed(2)}</span>
+                <span className="font-semibold text-success">RWF {sale.total.toLocaleString()}</span>
               </div>
             ))}
             {todaySales.length === 0 && (

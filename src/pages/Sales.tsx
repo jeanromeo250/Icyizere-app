@@ -41,7 +41,7 @@ export default function Sales() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Sales" subtitle={`$${totalRevenue.toFixed(2)} total revenue`} />
+      <PageHeader title="Sales" subtitle={`RWF ${totalRevenue.toLocaleString()} total revenue`} />
 
       <div className="px-4 space-y-4 mt-2">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -59,7 +59,7 @@ export default function Sales() {
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>
                     {products.filter(p => p.stock > 0).map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} (${p.price})</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{p.name} (RWF {p.price.toLocaleString()})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -70,7 +70,7 @@ export default function Sales() {
               </div>
               {product && (
                 <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-sm">
-                  <p className="text-muted-foreground">Total: <span className="font-bold text-foreground text-lg">${total.toFixed(2)}</span></p>
+                  <p className="text-muted-foreground">Total: <span className="font-bold text-foreground text-lg">RWF {total.toLocaleString()}</span></p>
                   <p className="text-xs text-muted-foreground">Available stock: {product.stock}</p>
                 </div>
               )}
@@ -90,7 +90,7 @@ export default function Sales() {
                 <p className="font-medium text-foreground text-sm truncate">{sale.productName}</p>
                 <p className="text-xs text-muted-foreground">Qty: {sale.quantity} · {sale.employeeName} · {sale.date}</p>
               </div>
-              <span className="font-semibold text-success text-sm">${sale.total.toFixed(2)}</span>
+              <span className="font-semibold text-success text-sm">RWF {sale.total.toLocaleString()}</span>
             </div>
           ))}
         </div>

@@ -116,7 +116,7 @@ export default function Stock() {
             type: "in",
             quantity: item.quantity,
             date: today,
-            note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · $${item.unitPrice}/unit`,
+            note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · RWF ${item.unitPrice}/unit`,
           });
           updateProduct(product.id, { stock: product.stock + item.quantity });
           added++;
@@ -238,7 +238,7 @@ export default function Stock() {
                   <div className="rounded-xl border border-border bg-secondary/50 p-3 text-sm">
                     {invoiceMeta.supplier && <p><span className="font-medium text-foreground">Supplier:</span> <span className="text-muted-foreground">{invoiceMeta.supplier}</span></p>}
                     {invoiceMeta.invoiceDate && <p><span className="font-medium text-foreground">Date:</span> <span className="text-muted-foreground">{invoiceMeta.invoiceDate}</span></p>}
-                    {invoiceMeta.invoiceTotal != null && <p><span className="font-medium text-foreground">Total:</span> <span className="text-muted-foreground">${invoiceMeta.invoiceTotal.toFixed(2)}</span></p>}
+                    {invoiceMeta.invoiceTotal != null && <p><span className="font-medium text-foreground">Total:</span> <span className="text-muted-foreground">RWF {invoiceMeta.invoiceTotal.toLocaleString()}</span></p>}
                   </div>
                 )}
 
@@ -253,7 +253,7 @@ export default function Stock() {
                           <div>
                             <p className="text-sm font-semibold text-foreground">{item.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              Qty: {item.quantity} · ${item.unitPrice}/unit · Total: ${item.totalPrice}
+                              Qty: {item.quantity} · RWF {item.unitPrice}/unit · Total: RWF {item.totalPrice}
                             </p>
                           </div>
                           <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive">
