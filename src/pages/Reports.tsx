@@ -185,7 +185,7 @@ export default function Reports() {
                 <div className="border-t border-border my-1" />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Estimated Tax (18%)</span>
-                  <span className="font-bold text-warning">${estimatedTax.toFixed(2)}</span>
+                  <span className="font-bold text-warning">RWF {estimatedTax.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-semibold">Profit After Tax</span>
