@@ -189,7 +189,7 @@ export default function Reports() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-semibold">Profit After Tax</span>
-                  <span className={`font-bold ${afterTax >= 0 ? "text-success" : "text-destructive"}`}>${afterTax.toFixed(2)}</span>
+                  <span className={`font-bold ${afterTax >= 0 ? "text-success" : "text-destructive"}`}>RWF {afterTax.toLocaleString()}</span>
                 </div>
               </div>
             </div>
