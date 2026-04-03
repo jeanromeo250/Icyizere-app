@@ -176,7 +176,7 @@ export default function Reports() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Deductions</span>
-                  <span className="font-medium text-destructive">-${totalExpenses.toFixed(2)}</span>
+                  <span className="font-medium text-destructive">-RWF {totalExpenses.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taxable Income</span>
