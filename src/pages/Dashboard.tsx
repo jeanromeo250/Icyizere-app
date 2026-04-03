@@ -18,7 +18,7 @@ export default function Dashboard() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Dashboard" subtitle="Today's Overview" showNotification />
+      <PageHeader title="ICYIZERE-BUSINESS" subtitle="Today's Overview" showNotification />
 
       <div className="px-4 space-y-4 mt-2">
         {/* Stats Grid */}
