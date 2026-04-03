@@ -1,9 +1,4 @@
-import { LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Receipt, Users, BarChart3 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
-
-import { LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Receipt, Users, BarChart3, Bell, Warehouse } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Receipt, Users, BarChart3, Bell, Warehouse } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
