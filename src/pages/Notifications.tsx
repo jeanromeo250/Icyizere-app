@@ -126,7 +126,7 @@ export default function Notifications() {
         icon: FileText,
         title: `Expense: ${exp.category}`,
         description: exp.description,
-        value: `$${exp.amount.toFixed(2)}`,
+        value: `RWF ${exp.amount.toLocaleString()}`,
         variant: "warning",
         time: exp.date,
       });
