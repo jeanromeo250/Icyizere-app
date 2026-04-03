@@ -185,7 +185,7 @@ export default function Notifications() {
           </div>
           <div className="rounded-xl border border-warning/30 bg-warning/5 p-3">
             <p className="text-xs text-muted-foreground font-medium">Expenses</p>
-            <p className="text-lg font-bold text-warning">${totalExpensesAmount.toFixed(2)}</p>
+            <p className="text-lg font-bold text-warning">RWF {totalExpensesAmount.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{todayExpenses.length} entries</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-3">

@@ -253,7 +253,7 @@ export default function Stock() {
                           <div>
                             <p className="text-sm font-semibold text-foreground">{item.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              Qty: {item.quantity} · ${item.unitPrice}/unit · Total: ${item.totalPrice}
+                              Qty: {item.quantity} · RWF {item.unitPrice}/unit · Total: RWF {item.totalPrice}
                             </p>
                           </div>
                           <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive">
