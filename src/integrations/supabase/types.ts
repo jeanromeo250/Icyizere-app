@@ -10,158 +10,20 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      activity_log: {
-        Row: {
-          action: string
-          created_at: string
-          details: Json | null
-          id: string
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      employee_permissions: {
-        Row: {
-          can_add_expenses: boolean
-          can_add_products: boolean
-          can_add_stock: boolean
-          can_delete_products: boolean
-          can_edit_products: boolean
-          can_record_sales: boolean
-          can_remove_stock: boolean
-          can_view_expenses: boolean
-          can_view_products: boolean
-          can_view_sales: boolean
-          created_at: string
-          employee_user_id: string
-          id: string
-          manager_user_id: string
-          updated_at: string
-        }
-        Insert: {
-          can_add_expenses?: boolean
-          can_add_products?: boolean
-          can_add_stock?: boolean
-          can_delete_products?: boolean
-          can_edit_products?: boolean
-          can_record_sales?: boolean
-          can_remove_stock?: boolean
-          can_view_expenses?: boolean
-          can_view_products?: boolean
-          can_view_sales?: boolean
-          created_at?: string
-          employee_user_id: string
-          id?: string
-          manager_user_id: string
-          updated_at?: string
-        }
-        Update: {
-          can_add_expenses?: boolean
-          can_add_products?: boolean
-          can_add_stock?: boolean
-          can_delete_products?: boolean
-          can_edit_products?: boolean
-          can_record_sales?: boolean
-          can_remove_stock?: boolean
-          can_view_expenses?: boolean
-          can_view_products?: boolean
-          can_view_sales?: boolean
-          created_at?: string
-          employee_user_id?: string
-          id?: string
-          manager_user_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          business_name: string | null
-          created_at: string
-          full_name: string
-          id: string
-          location: string | null
-          phone: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          business_name?: string | null
-          created_at?: string
-          full_name: string
-          id?: string
-          location?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          business_name?: string | null
-          created_at?: string
-          full_name?: string
-          id?: string
-          location?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_employee_user_id_by_email: {
-        Args: { _email: string }
-        Returns: string
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "manager" | "employee"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -288,8 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["manager", "employee"],
-    },
+    Enums: {},
   },
 } as const
