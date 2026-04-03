@@ -116,7 +116,7 @@ export default function Notifications() {
       icon: Receipt,
       title: "Today's Expenses",
       description: `${todayExpenses.length} expense(s) recorded`,
-      value: `$${totalExpensesAmount.toFixed(2)}`,
+      value: `RWF ${totalExpensesAmount.toLocaleString()}`,
       variant: "warning",
       time: "Today",
     });
