@@ -70,7 +70,7 @@ export default function Sales() {
               </div>
               {product && (
                 <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-sm">
-                  <p className="text-muted-foreground">Total: <span className="font-bold text-foreground text-lg">${total.toFixed(2)}</span></p>
+                  <p className="text-muted-foreground">Total: <span className="font-bold text-foreground text-lg">RWF {total.toLocaleString()}</span></p>
                   <p className="text-xs text-muted-foreground">Available stock: {product.stock}</p>
                 </div>
               )}
