@@ -238,7 +238,7 @@ export default function Stock() {
                   <div className="rounded-xl border border-border bg-secondary/50 p-3 text-sm">
                     {invoiceMeta.supplier && <p><span className="font-medium text-foreground">Supplier:</span> <span className="text-muted-foreground">{invoiceMeta.supplier}</span></p>}
                     {invoiceMeta.invoiceDate && <p><span className="font-medium text-foreground">Date:</span> <span className="text-muted-foreground">{invoiceMeta.invoiceDate}</span></p>}
-                    {invoiceMeta.invoiceTotal != null && <p><span className="font-medium text-foreground">Total:</span> <span className="text-muted-foreground">${invoiceMeta.invoiceTotal.toFixed(2)}</span></p>}
+                    {invoiceMeta.invoiceTotal != null && <p><span className="font-medium text-foreground">Total:</span> <span className="text-muted-foreground">RWF {invoiceMeta.invoiceTotal.toLocaleString()}</span></p>}
                   </div>
                 )}
 
