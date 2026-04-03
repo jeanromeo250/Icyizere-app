@@ -172,7 +172,7 @@ export default function Reports() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gross Revenue</span>
-                  <span className="font-medium text-foreground">${totalSales.toFixed(2)}</span>
+                  <span className="font-medium text-foreground">RWF {totalSales.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Deductions</span>
