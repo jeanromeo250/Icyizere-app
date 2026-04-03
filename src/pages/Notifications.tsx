@@ -54,7 +54,7 @@ export default function Notifications() {
         icon: TrendingUp,
         title: `Sold: ${sale.productName}`,
         description: `Qty: ${sale.quantity} · by ${sale.employeeName}`,
-        value: `$${sale.total.toFixed(2)}`,
+        value: `RWF ${sale.total.toLocaleString()}`,
         variant: "success",
         time: sale.date,
       });
