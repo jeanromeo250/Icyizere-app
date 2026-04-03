@@ -43,7 +43,7 @@ export default function Notifications() {
       icon: ShoppingCart,
       title: "Today's Sales",
       description: `${todaySales.length} sale(s) recorded today`,
-      value: `$${totalSalesRevenue.toFixed(2)}`,
+      value: `RWF ${totalSalesRevenue.toLocaleString()}`,
       variant: "success",
       time: "Today",
     });
