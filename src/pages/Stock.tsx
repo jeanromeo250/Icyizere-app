@@ -116,7 +116,7 @@ export default function Stock() {
             type: "in",
             quantity: item.quantity,
             date: today,
-            note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · $${item.unitPrice}/unit`,
+            note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · RWF ${item.unitPrice}/unit`,
           });
           updateProduct(product.id, { stock: product.stock + item.quantity });
           added++;
