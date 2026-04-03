@@ -210,7 +210,7 @@ export default function Reports() {
                         <span className="text-foreground font-medium">{name}</span>
                         <span className="text-xs text-muted-foreground ml-2">×{data.qty}</span>
                       </div>
-                      <span className="font-semibold text-success">${data.total.toFixed(2)}</span>
+                      <span className="font-semibold text-success">RWF {data.total.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
