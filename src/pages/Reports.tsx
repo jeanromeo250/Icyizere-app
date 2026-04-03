@@ -180,7 +180,7 @@ export default function Reports() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taxable Income</span>
-                  <span className="font-medium text-foreground">${netProfit.toFixed(2)}</span>
+                  <span className="font-medium text-foreground">RWF {netProfit.toLocaleString()}</span>
                 </div>
                 <div className="border-t border-border my-1" />
                 <div className="flex justify-between">
