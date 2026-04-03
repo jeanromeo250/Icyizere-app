@@ -155,7 +155,7 @@ export default function Reports() {
                         <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-destructive/70" style={{ width: `${(amount / totalExpenses) * 100}%` }} />
                         </div>
-                        <span className="font-medium text-destructive w-20 text-right">${amount.toFixed(2)}</span>
+                        <span className="font-medium text-destructive w-24 text-right">RWF {amount.toLocaleString()}</span>
                       </div>
                     </div>
                   ))}
