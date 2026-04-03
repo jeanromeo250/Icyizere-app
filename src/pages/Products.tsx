@@ -94,7 +94,7 @@ export default function Products() {
                 <p className="font-medium text-foreground text-sm truncate">{product.name}</p>
                 <p className="text-xs text-muted-foreground">{product.category} · Stock: {product.stock}</p>
               </div>
-              <span className="font-semibold text-foreground text-sm">${product.price.toFixed(2)}</span>
+              <span className="font-semibold text-foreground text-sm">RWF {product.price.toLocaleString()}</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => { setEditing(product); setDialogOpen(true); }}

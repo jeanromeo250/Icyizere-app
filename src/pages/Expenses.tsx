@@ -75,7 +75,7 @@ export default function Expenses() {
                 <p className="font-medium text-foreground text-sm">{expense.description}</p>
                 <p className="text-xs text-muted-foreground">{expense.category} · {expense.date}</p>
               </div>
-              <span className="font-semibold text-destructive text-sm">-${expense.amount.toFixed(2)}</span>
+              <span className="font-semibold text-destructive text-sm">-RWF {expense.amount.toLocaleString()}</span>
             </div>
           ))}
         </div>

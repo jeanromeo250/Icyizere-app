@@ -3,11 +3,18 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Receipt, Users, BarChart3, Bell, Warehouse } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+
 const baseItems = [
   { icon: LayoutDashboard, label: "Home", path: "/" },
   { icon: Package, label: "Products", path: "/products" },
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
   { icon: Receipt, label: "Expenses", path: "/expenses" },
+  { icon: Warehouse, label: "Stock", path: "/stock" },
+  { icon: Bell, label: "Alerts", path: "/notifications" },
 ];
 
 export default function BottomNav() {

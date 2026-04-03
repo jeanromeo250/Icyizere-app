@@ -85,7 +85,7 @@ export default function Dashboard() {
                   <p className="font-medium text-foreground">{sale.productName}</p>
                   <p className="text-xs text-muted-foreground">Qty: {sale.quantity} · {sale.employeeName}</p>
                 </div>
-                <span className="font-semibold text-success">${sale.total.toFixed(2)}</span>
+                <span className="font-semibold text-success">RWF {sale.total.toLocaleString()}</span>
               </div>
             ))}
             {todaySales.length === 0 && (

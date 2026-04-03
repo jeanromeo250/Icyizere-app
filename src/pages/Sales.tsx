@@ -90,7 +90,7 @@ export default function Sales() {
                 <p className="font-medium text-foreground text-sm truncate">{sale.productName}</p>
                 <p className="text-xs text-muted-foreground">Qty: {sale.quantity} · {sale.employeeName} · {sale.date}</p>
               </div>
-              <span className="font-semibold text-success text-sm">${sale.total.toFixed(2)}</span>
+              <span className="font-semibold text-success text-sm">RWF {sale.total.toLocaleString()}</span>
             </div>
           ))}
         </div>
