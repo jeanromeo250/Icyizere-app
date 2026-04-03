@@ -59,7 +59,7 @@ export default function Sales() {
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>
                     {products.filter(p => p.stock > 0).map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} (${p.price})</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{p.name} (RWF {p.price.toLocaleString()})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
