@@ -147,7 +147,7 @@ export default function Employees() {
 
     const employeeUserId = signUpData.user.id;
 
-    // Restore manager session so we can insert profile/permissions as manager
+    // Restore manager session so we can insert permissions as manager
     if (managerSession) {
       await supabase.auth.setSession({
         access_token: managerSession.access_token,
@@ -155,28 +155,9 @@ export default function Employees() {
       });
     }
 
-    // Create profile for the employee
-    const { error: profileError } = await (supabase.from("profiles" as any) as any).upsert({
-      user_id: employeeUserId,
-      full_name: fullName,
-      business_name: null,
-      phone: null,
-      location: null,
-    });
-
-    if (profileError) {
-      console.error("Profile insert error:", profileError);
-    }
-
-    // Insert role
-    const { error: roleError } = await (supabase.from("user_roles" as any) as any).upsert({
-      user_id: employeeUserId,
-      role: "employee",
-    });
-
-    if (roleError) {
-      console.error("Role insert error:", roleError);
-    }
+    // Profile and role are auto-created by the database trigger (handle_new_user)
+    // Just wait briefly for the trigger to complete
+    await new Promise((r) => setTimeout(r, 1000));
 
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
