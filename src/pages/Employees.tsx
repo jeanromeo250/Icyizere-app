@@ -70,8 +70,8 @@ export default function Employees() {
 
   const fetchEmployees = async () => {
     if (!user) return;
-    const { data: empPerms } = await supabase
-      .from("employee_permissions")
+    const { data: empPerms } = await (supabase
+      .from("employee_permissions" as any) as any)
       .select("*")
       .eq("manager_user_id", user.id);
 
