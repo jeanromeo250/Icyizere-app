@@ -81,8 +81,8 @@ export default function Employees() {
     }
 
     const empIds = empPerms.map((e) => e.employee_user_id);
-    const { data: profiles } = await supabase
-      .from("profiles")
+    const { data: profiles } = await (supabase
+      .from("profiles" as any) as any)
       .select("*")
       .in("user_id", empIds);
 
