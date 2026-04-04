@@ -201,8 +201,8 @@ export default function Employees() {
   };
 
   const handleUpdatePermissions = async (employeeUserId: string, newPerms: Partial<typeof FULL_ACCESS_PERMISSIONS>) => {
-    const { error } = await supabase
-      .from("employee_permissions")
+    const { error } = await (supabase
+      .from("employee_permissions" as any) as any)
       .update(newPerms)
       .eq("employee_user_id", employeeUserId)
       .eq("manager_user_id", user!.id);
