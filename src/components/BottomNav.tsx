@@ -27,6 +27,7 @@ export default function BottomNav() {
           { icon: Users, label: "Team", path: "/employees" },
         ]
       : []),
+    { icon: Bell, label: "Alerts", path: "/notifications" },
   ];
 
   return (

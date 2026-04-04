@@ -79,7 +79,7 @@ export default function Settings() {
     }
     setLoading(true);
 
-    const { data: empUserId, error: lookupErr } = await supabase.rpc(
+    const { data: empUserId, error: lookupErr } = await (supabase.rpc as any)(
       "get_employee_user_id_by_email",
       { _email: deleteEmail.trim() }
     );
@@ -90,8 +90,8 @@ export default function Settings() {
       return;
     }
 
-    const { error } = await supabase
-      .from("employee_permissions")
+    const { error } = await (supabase
+      .from("employee_permissions" as any) as any)
       .delete()
       .eq("employee_user_id", empUserId)
       .eq("manager_user_id", user!.id);
