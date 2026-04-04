@@ -181,7 +181,7 @@ export default function Employees() {
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
 
-    const { error: permError } = await supabase.from("employee_permissions").insert({
+    const { error: permError } = await (supabase.from("employee_permissions" as any) as any).insert({
       employee_user_id: employeeUserId,
       manager_user_id: user!.id,
       ...permissionsData,
