@@ -31,8 +31,8 @@ export default function Settings() {
   const handleUpdateProfile = async () => {
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase
-      .from("profiles")
+    const { error } = await (supabase
+      .from("profiles" as any) as any)
       .update({ full_name: fullName, phone, location, business_name: businessName })
       .eq("user_id", user.id);
     setLoading(false);
