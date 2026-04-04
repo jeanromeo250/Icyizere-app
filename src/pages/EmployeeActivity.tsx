@@ -50,8 +50,8 @@ export default function EmployeeActivity() {
   }, [employeeId, period, role]);
 
   const fetchEmployeeName = async () => {
-    const { data } = await supabase
-      .from("profiles")
+    const { data } = await (supabase
+      .from("profiles" as any) as any)
       .select("full_name")
       .eq("user_id", employeeId!)
       .single();
