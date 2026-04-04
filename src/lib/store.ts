@@ -1,13 +1,9 @@
-// Supabase-backed store hooks — no more localStorage / demo data
+// Supabase-backed store hooks
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-// Untyped client for tables not yet in generated types
-const db = createClient(
-  "https://qdtdzkahltojqgjrqezc.supabase.co",
-  "sb_publishable_1Uw8INt9gaMDpupVnw91Mg_kemNeWGc",
-  { auth: { storage: localStorage, persistSession: true, autoRefreshToken: true } }
-);
+// Use the project's Supabase client (cast to any for tables not yet in generated types)
+const db = supabase as any;
 
 // ---------- Types ----------
 

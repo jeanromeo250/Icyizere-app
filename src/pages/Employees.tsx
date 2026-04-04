@@ -70,8 +70,8 @@ export default function Employees() {
 
   const fetchEmployees = async () => {
     if (!user) return;
-    const { data: empPerms } = await supabase
-      .from("employee_permissions")
+    const { data: empPerms } = await (supabase
+      .from("employee_permissions" as any) as any)
       .select("*")
       .eq("manager_user_id", user.id);
 
@@ -81,8 +81,8 @@ export default function Employees() {
     }
 
     const empIds = empPerms.map((e) => e.employee_user_id);
-    const { data: profiles } = await supabase
-      .from("profiles")
+    const { data: profiles } = await (supabase
+      .from("profiles" as any) as any)
       .select("*")
       .in("user_id", empIds);
 
@@ -156,7 +156,7 @@ export default function Employees() {
     }
 
     // Create profile for the employee
-    const { error: profileError } = await supabase.from("profiles").upsert({
+    const { error: profileError } = await (supabase.from("profiles" as any) as any).upsert({
       user_id: employeeUserId,
       full_name: fullName,
       business_name: null,
@@ -169,7 +169,7 @@ export default function Employees() {
     }
 
     // Insert role
-    const { error: roleError } = await supabase.from("user_roles").upsert({
+    const { error: roleError } = await (supabase.from("user_roles" as any) as any).upsert({
       user_id: employeeUserId,
       role: "employee",
     });
@@ -181,7 +181,7 @@ export default function Employees() {
     // Set permissions
     const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
 
-    const { error: permError } = await supabase.from("employee_permissions").insert({
+    const { error: permError } = await (supabase.from("employee_permissions" as any) as any).insert({
       employee_user_id: employeeUserId,
       manager_user_id: user!.id,
       ...permissionsData,
@@ -201,8 +201,8 @@ export default function Employees() {
   };
 
   const handleUpdatePermissions = async (employeeUserId: string, newPerms: Partial<typeof FULL_ACCESS_PERMISSIONS>) => {
-    const { error } = await supabase
-      .from("employee_permissions")
+    const { error } = await (supabase
+      .from("employee_permissions" as any) as any)
       .update(newPerms)
       .eq("employee_user_id", employeeUserId)
       .eq("manager_user_id", user!.id);
@@ -216,8 +216,8 @@ export default function Employees() {
   };
 
   const handleDeleteEmployee = async (employeeUserId: string) => {
-    const { error } = await supabase
-      .from("employee_permissions")
+    const { error } = await (supabase
+      .from("employee_permissions" as any) as any)
       .delete()
       .eq("employee_user_id", employeeUserId)
       .eq("manager_user_id", user!.id);

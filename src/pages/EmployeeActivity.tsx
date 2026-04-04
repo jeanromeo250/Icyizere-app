@@ -50,8 +50,8 @@ export default function EmployeeActivity() {
   }, [employeeId, period, role]);
 
   const fetchEmployeeName = async () => {
-    const { data } = await supabase
-      .from("profiles")
+    const { data } = await (supabase
+      .from("profiles" as any) as any)
       .select("full_name")
       .eq("user_id", employeeId!)
       .single();
@@ -59,8 +59,8 @@ export default function EmployeeActivity() {
   };
 
   const fetchActivity = async () => {
-    let query = supabase
-      .from("activity_log")
+    let query = (supabase
+      .from("activity_log" as any) as any)
       .select("*")
       .eq("user_id", employeeId!)
       .order("created_at", { ascending: false });
