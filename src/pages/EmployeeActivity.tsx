@@ -59,8 +59,8 @@ export default function EmployeeActivity() {
   };
 
   const fetchActivity = async () => {
-    let query = supabase
-      .from("activity_log")
+    let query = (supabase
+      .from("activity_log" as any) as any)
       .select("*")
       .eq("user_id", employeeId!)
       .order("created_at", { ascending: false });

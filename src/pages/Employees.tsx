@@ -216,8 +216,8 @@ export default function Employees() {
   };
 
   const handleDeleteEmployee = async (employeeUserId: string) => {
-    const { error } = await supabase
-      .from("employee_permissions")
+    const { error } = await (supabase
+      .from("employee_permissions" as any) as any)
       .delete()
       .eq("employee_user_id", employeeUserId)
       .eq("manager_user_id", user!.id);
