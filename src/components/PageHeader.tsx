@@ -1,4 +1,4 @@
-import { Bell, Sun, Moon, Settings } from "lucide-react";
+import { Sun, Moon, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -8,7 +8,7 @@ interface PageHeaderProps {
   showNotification?: boolean;
 }
 
-export default function PageHeader({ title, subtitle, showNotification = false }: PageHeaderProps) {
+export default function PageHeader({ title, subtitle }: PageHeaderProps) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
@@ -26,15 +26,6 @@ export default function PageHeader({ title, subtitle, showNotification = false }
         >
           {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
         </button>
-        {showNotification && (
-          <button
-            onClick={() => navigate("/notifications")}
-            className="relative p-2 rounded-full bg-secondary text-foreground"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
-          </button>
-        )}
         <button
           onClick={() => navigate("/settings")}
           className="p-2 rounded-full bg-secondary text-foreground"
