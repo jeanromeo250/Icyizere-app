@@ -9,7 +9,6 @@ const baseItems = [
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
   { icon: Receipt, label: "Expenses", path: "/expenses" },
   { icon: Warehouse, label: "Stock", path: "/stock" },
-  { icon: Bell, label: "Alerts", path: "/notifications" },
 ];
 
 export default function BottomNav() {

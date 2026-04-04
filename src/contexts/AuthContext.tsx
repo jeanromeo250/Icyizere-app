@@ -1,12 +1,37 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = "manager" | "employee";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type EmployeePermissions = Database["public"]["Tables"]["employee_permissions"]["Row"];
+interface Profile {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  business_name: string | null;
+  phone: string | null;
+  location: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface EmployeePermissions {
+  id: string;
+  employee_user_id: string;
+  manager_user_id: string;
+  can_add_stock: boolean;
+  can_remove_stock: boolean;
+  can_view_products: boolean;
+  can_add_products: boolean;
+  can_edit_products: boolean;
+  can_delete_products: boolean;
+  can_record_sales: boolean;
+  can_view_sales: boolean;
+  can_add_expenses: boolean;
+  can_view_expenses: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -42,24 +67,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     const [profileRes, permRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", userId).single(),
-      supabase.from("employee_permissions").select("*").eq("employee_user_id", userId).single(),
+      supabase.from("profiles" as any).select("*").eq("user_id", userId).single(),
+      supabase.from("employee_permissions" as any).select("*").eq("employee_user_id", userId).single(),
     ]);
 
-    if (profileRes.data) setProfile(profileRes.data);
-    if (permRes.data) setPermissions(permRes.data);
+    if (profileRes.data) setProfile(profileRes.data as any);
+    if (permRes.data) setPermissions(permRes.data as any);
 
-    // Try user_roles table first, fall back to user_metadata.role
     const { data: roleData } = await supabase
-      .from("user_roles")
+      .from("user_roles" as any)
       .select("role")
       .eq("user_id", userId)
       .single();
 
     if (roleData?.role) {
-      setRole(roleData.role as AppRole);
+      setRole((roleData as any).role as AppRole);
     } else {
-      // Fall back to role from auth user metadata
       const { data: { user } } = await supabase.auth.getUser();
       const metaRole = user?.user_metadata?.role as string;
       setRole((metaRole === "manager" || metaRole === "employee") ? metaRole : "employee");
