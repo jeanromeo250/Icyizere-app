@@ -1,41 +1,47 @@
 import { useState } from "react";
-import { Plus, ShoppingCart, DollarSign, TrendingUp } from "lucide-react";
+import { Plus, ShoppingCart, DollarSign, TrendingUp, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { useProducts, useSales } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Sales() {
+  const { profile } = useAuth();
   const { products, updateProduct } = useProducts();
   const { sales, addSale } = useSales();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
+  const [pricePerUnit, setPricePerUnit] = useState(0);
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
 
-  const product = products.find(p => p.id === selectedProduct);
-  const total = product ? product.price * quantity : 0;
+  const total = selectedProduct ? pricePerUnit * quantity : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!product) return;
+    if (!selectedProduct) return;
 
     addSale({
-      productId: product.id,
-      productName: product.name,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
       quantity,
       total,
       date: new Date().toISOString().split("T")[0],
-      employeeName: "Manager",
+      employeeName: profile?.full_name || "Manager",
     });
 
-    updateProduct(product.id, { stock: Math.max(0, product.stock - quantity) });
+    updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - quantity) });
     setDialogOpen(false);
-    setSelectedProduct("");
+    setSelectedProduct(null);
     setQuantity(1);
+    setPricePerUnit(0);
   };
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
@@ -86,38 +92,80 @@ export default function Sales() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <Label>Product</Label>
-                <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.filter(p => p.stock > 0).map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} (RWF {p.price.toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={productSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedProduct ? selectedProduct.name : "Search and select product..."}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search products..." />
+                      <CommandList>
+                        <CommandEmpty>No products found.</CommandEmpty>
+                        <CommandGroup>
+                          {products.filter(p => p.stock > 0).map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.name}
+                              onSelect={() => {
+                                setSelectedProduct(product);
+                                setPricePerUnit(product.price);
+                                setProductSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {product.name} (Stock: {product.stock})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
-              <div>
-                <Label>Quantity</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={product?.stock || 1}
-                  value={quantity}
-                  onChange={e => setQuantity(parseInt(e.target.value) || 1)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Quantity</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={selectedProduct?.stock || 1}
+                    value={quantity}
+                    onChange={e => setQuantity(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div>
+                  <Label>Price per Unit (RWF)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={pricePerUnit}
+                    onChange={e => setPricePerUnit(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
               </div>
-              {product && (
+              {selectedProduct && (
                 <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-sm">
                   <p className="text-muted-foreground">
                     Total: <span className="font-bold text-foreground text-lg">RWF {total.toLocaleString()}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">Available stock: {product.stock}</p>
+                  <p className="text-xs text-muted-foreground">Available stock: {selectedProduct.stock}</p>
                 </div>
               )}
-              <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={!product}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground" disabled={!selectedProduct}>
                 Confirm Sale
               </Button>
             </form>

@@ -14,53 +14,80 @@ import { useNavigate } from "react-router-dom";
 interface EmployeeWithProfile {
   employee_user_id: string;
   full_name: string;
+  employee_name?: string;
   email: string;
   can_record_sales: boolean;
-  can_view_products: boolean;
-  can_add_products: boolean;
+  can_view_stock: boolean;
+  can_add_product: boolean;
   can_add_stock: boolean;
   can_remove_stock: boolean;
   can_view_sales: boolean;
-  can_edit_products: boolean;
-  can_delete_products: boolean;
+  can_edit_product: boolean;
+  can_delete_product: boolean;
   can_add_expenses: boolean;
 }
 
 const PERMISSION_LABELS: Record<string, string> = {
   can_record_sales: "Record Sales",
-  can_view_products: "View Products",
-  can_add_products: "Add Products",
+  can_view_stock: "View Stock",
+  can_add_product: "Add Products",
   can_add_stock: "Stock In",
   can_remove_stock: "Stock Out",
   can_view_sales: "View Sales",
-  can_edit_products: "Edit Products",
-  can_delete_products: "Delete Products",
+  can_edit_product: "Edit Products",
+  can_delete_product: "Delete Products",
   can_add_expenses: "Add Expenses",
 };
 
 const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   can_record_sales: "Record sales transactions",
-  can_view_products: "View product catalog",
-  can_add_products: "Add new products",
+  can_view_stock: "View stock levels and entries",
+  can_add_product: "Add new products",
   can_add_stock: "Add stock entries",
   can_remove_stock: "Remove stock entries",
   can_view_sales: "View sales history",
-  can_edit_products: "Edit product details",
-  can_delete_products: "Remove products from inventory",
+  can_edit_product: "Edit product details",
+  can_delete_product: "Remove products from inventory",
   can_add_expenses: "Record expenses",
 };
 
 const FULL_ACCESS_PERMISSIONS = {
   can_record_sales: true,
-  can_view_products: true,
-  can_add_products: true,
+  can_view_stock: true,
+  can_add_product: true,
   can_add_stock: true,
   can_remove_stock: true,
   can_view_sales: true,
-  can_edit_products: true,
-  can_delete_products: true,
+  can_edit_product: true,
+  can_delete_product: true,
   can_add_expenses: true,
 };
+
+const dbToUiPermissions = (row: any) => ({
+  can_record_sales: row.can_record_sales,
+  can_view_stock: row.can_view_stock,
+  can_add_product: row.can_add_product,
+  can_edit_product: row.can_edit_product,
+  can_delete_product: row.can_delete_product,
+  can_view_sales: row.can_view_sales,
+  can_add_stock: row.can_add_stock,
+  can_remove_stock: row.can_remove_stock,
+  can_add_expenses: row.can_add_expenses,
+  can_view_expenses: row.can_view_expenses,
+});
+
+const uiToDbPermissions = (perms: Partial<typeof FULL_ACCESS_PERMISSIONS>) => ({
+  can_record_sales: perms.can_record_sales,
+  can_view_stock: perms.can_view_stock,
+  can_add_product: perms.can_add_product,
+  can_edit_product: perms.can_edit_product,
+  can_delete_product: perms.can_delete_product,
+  can_view_sales: perms.can_view_sales,
+  can_add_stock: perms.can_add_stock,
+  can_remove_stock: perms.can_remove_stock,
+  can_add_expenses: perms.can_add_expenses,
+  can_view_expenses: perms.can_view_expenses,
+});
 
 export default function Employees() {
   const { user, role } = useAuth();
@@ -102,16 +129,9 @@ export default function Employees() {
       return {
         employee_user_id: ep.employee_user_id,
         full_name: prof?.full_name || "Unknown Employee",
+        employee_name: prof?.full_name || "Unknown Employee",
         email: prof?.phone || "",
-        can_record_sales: ep.can_record_sales,
-        can_view_products: ep.can_view_products,
-        can_add_products: ep.can_add_products,
-        can_add_stock: ep.can_add_stock,
-        can_remove_stock: ep.can_remove_stock,
-        can_view_sales: ep.can_view_sales,
-        can_edit_products: ep.can_edit_products,
-        can_delete_products: ep.can_delete_products,
-        can_add_expenses: ep.can_add_expenses,
+        ...dbToUiPermissions(ep),
       };
     });
 
@@ -124,11 +144,11 @@ export default function Employees() {
     const performance: Record<string, any> = {};
 
     for (const emp of employeeList) {
-      // Get sales data for this employee
+      // Get sales data for this employee by user id
       const { data: sales } = await (supabase
         .from("sales" as any) as any)
         .select("*")
-        .eq("employee_name", emp.full_name)
+        .eq("user_id", emp.employee_user_id)
         .gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
 
       // Get activity count
@@ -156,11 +176,34 @@ export default function Employees() {
   // Filter employees based on search query
   const filteredEmployees = useMemo(() => {
     if (!searchQuery.trim()) return employees;
-    return employees.filter(emp =>
-      emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return employees.filter(emp => {
+      const name = (emp.employee_name || emp.full_name).toLowerCase();
+      return (
+        name.includes(searchQuery.toLowerCase()) ||
+        emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
   }, [employees, searchQuery]);
+
+  const waitForEmployeeSetup = async (employeeUserId: string) => {
+    const retries = 30;
+    const delayMs = 1000;
+
+    for (let i = 0; i < retries; i++) {
+      const [{ data: profileData }, { data: roleData }] = await Promise.all([
+        supabase.from("profiles" as any).select("user_id").eq("user_id", employeeUserId).maybeSingle(),
+        supabase.from("user_roles" as any).select("user_id").eq("user_id", employeeUserId).maybeSingle(),
+      ]);
+
+      if (profileData && roleData) {
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    return false;
+  };
 
   const handleCreateEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -188,7 +231,6 @@ export default function Employees() {
 
     if (signUpError || !signUpData.user) {
       toast.error(signUpError?.message || "Failed to create employee account");
-      // Restore manager session
       if (managerSession) {
         await supabase.auth.setSession({
           access_token: managerSession.access_token,
@@ -201,7 +243,6 @@ export default function Employees() {
 
     const employeeUserId = signUpData.user.id;
 
-    // Restore manager session so we can insert permissions as manager
     if (managerSession) {
       await supabase.auth.setSession({
         access_token: managerSession.access_token,
@@ -209,12 +250,9 @@ export default function Employees() {
       });
     }
 
-    // Profile and role are auto-created by the database trigger (handle_new_user)
-    // Just wait briefly for the trigger to complete
-    await new Promise((r) => setTimeout(r, 1000));
+    const setupReady = await waitForEmployeeSetup(employeeUserId);
 
-    // Set permissions
-    const permissionsData = fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms };
+    const permissionsData = uiToDbPermissions(fullAccess ? { ...FULL_ACCESS_PERMISSIONS } : { ...perms });
 
     const { error: permError } = await (supabase.from("employee_permissions" as any) as any).insert({
       employee_user_id: employeeUserId,
@@ -225,7 +263,11 @@ export default function Employees() {
     if (permError) {
       toast.error("Account created but failed to set permissions: " + permError.message);
     } else {
-      toast.success(`Employee ${fullName} created! They'll receive a confirmation email.`);
+      if (setupReady) {
+        toast.success(`Employee ${fullName} created! They'll receive a confirmation email.`);
+      } else {
+        toast.success(`Employee ${fullName} created! Setup is still provisioning and may take a few more seconds.`);
+      }
     }
 
     setCreateOpen(false);
@@ -238,7 +280,7 @@ export default function Employees() {
   const handleUpdatePermissions = async (employeeUserId: string, newPerms: Partial<typeof FULL_ACCESS_PERMISSIONS>) => {
     const { error } = await (supabase
       .from("employee_permissions" as any) as any)
-      .update(newPerms)
+      .update(uiToDbPermissions(newPerms))
       .eq("employee_user_id", employeeUserId)
       .eq("manager_user_id", user!.id);
 
@@ -385,11 +427,11 @@ export default function Employees() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
                           <span className="text-sm font-bold text-primary">
-                            {emp.full_name.charAt(0).toUpperCase()}
+                            {(emp.employee_name || emp.full_name).charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
+                          <p className="font-semibold text-sm text-foreground">{emp.employee_name || emp.full_name}</p>
                           <p className="text-xs text-muted-foreground">
                             {Object.entries(PERMISSION_LABELS).filter(([k]) => emp[k as keyof typeof emp]).length}/6 permissions
                           </p>

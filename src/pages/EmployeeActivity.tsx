@@ -42,20 +42,103 @@ export default function EmployeeActivity() {
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [employeeName, setEmployeeName] = useState("");
   const [period, setPeriod] = useState("today");
+  const [products, setProducts] = useState<any[]>([]);
+  const [salesCount, setSalesCount] = useState(0);
+  const [stockInQuantity, setStockInQuantity] = useState(0);
+  const [stockOutQuantity, setStockOutQuantity] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
 
   useEffect(() => {
     if (!employeeId || role !== "manager") return;
+    fetchEmployeeData();
+    fetchProducts();
     fetchActivity();
-    fetchEmployeeName();
   }, [employeeId, period, role]);
 
-  const fetchEmployeeName = async () => {
-    const { data } = await (supabase
+  const fetchEmployeeData = async () => {
+    const { data: profile } = await (supabase
       .from("profiles" as any) as any)
       .select("full_name")
       .eq("user_id", employeeId!)
       .single();
-    if (data) setEmployeeName(data.full_name);
+
+    const fullName = profile?.full_name || "Employee";
+    setEmployeeName(fullName);
+
+    let start: Date | null = null;
+    if (period === "today") {
+      start = new Date();
+      start.setHours(0, 0, 0, 0);
+    } else if (period === "week") {
+      start = new Date();
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    } else if (period === "month") {
+      start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    } else if (period === "year") {
+      start = new Date();
+      start.setMonth(0, 1);
+      start.setHours(0, 0, 0, 0);
+    }
+
+    const startDate = start ? start.toISOString().split("T")[0] : undefined;
+
+    const salesQuery = (supabase
+      .from("sales" as any) as any)
+      .select("total, quantity")
+      .eq("user_id", employeeId!);
+    if (startDate) {
+      salesQuery.gte("date", startDate);
+    }
+
+    const { data: salesData } = await salesQuery;
+    let sales = salesData || [];
+
+    if ((!sales || sales.length === 0) && fullName && fullName !== "Employee") {
+      const fallbackQuery = (supabase
+        .from("sales" as any) as any)
+        .select("total, quantity")
+        .eq("employee_name", fullName);
+      if (startDate) {
+        fallbackQuery.gte("date", startDate);
+      }
+      const { data: fallbackSales } = await fallbackQuery;
+      sales = fallbackSales || [];
+    }
+
+    const revenue = sales.reduce((sum: number, sale: any) => sum + Number(sale.total || 0), 0);
+    setSalesCount(sales.length);
+    setTotalRevenue(revenue);
+
+    const stockQuery = (supabase
+      .from("stock_entries" as any) as any)
+      .select("type, quantity")
+      .eq("user_id", employeeId!);
+    if (startDate) {
+      stockQuery.gte("date", startDate);
+    }
+    const { data: stockEntries } = await stockQuery;
+
+    const entries = stockEntries || [];
+    const inQuantity = entries
+      .filter((entry: any) => entry.type === "in")
+      .reduce((sum: number, entry: any) => sum + Number(entry.quantity || 0), 0);
+    const outQuantity = entries
+      .filter((entry: any) => entry.type === "out")
+      .reduce((sum: number, entry: any) => sum + Number(entry.quantity || 0), 0);
+
+    setStockInQuantity(inQuantity);
+    setStockOutQuantity(outQuantity);
+  };
+
+  const fetchProducts = async () => {
+    const { data } = await (supabase
+      .from("products" as any) as any)
+      .select("*")
+      .order("name");
+    if (data) setProducts(data);
   };
 
   const fetchActivity = async () => {
@@ -90,15 +173,9 @@ export default function EmployeeActivity() {
   };
 
   // Compute summary
-  const totalSales = activities.filter((a) => a.action === "record_sale").length;
-  const totalStockIn = activities.filter((a) => a.action === "stock_in").length;
-  const totalStockOut = activities.filter((a) => a.action === "stock_out").length;
-  const totalRevenue = activities
-    .filter((a) => a.action === "record_sale")
-    .reduce((sum, a) => {
-      const d = getDetails(a.details);
-      return sum + (parseFloat(d.total || "0") || 0);
-    }, 0);
+  const totalSales = salesCount;
+  const totalStockIn = stockInQuantity;
+  const totalStockOut = stockOutQuantity;
 
   if (role !== "manager") {
     return (
@@ -151,6 +228,35 @@ export default function EmployeeActivity() {
             <p className="text-2xl font-bold text-foreground">{totalStockOut}</p>
             <p className="text-xs text-muted-foreground">Stock OUT</p>
           </div>
+        </div>
+
+        {/* Current Stock Overview */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Current Stock Levels ({products.length} products)
+          </h3>
+
+          {products.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No products found.</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {products.map((product) => (
+                <div key={product.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground truncate">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.category || "General"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${product.stock <= product.min_stock ? "text-destructive" : "text-foreground"}`}>
+                      {product.stock} units
+                    </p>
+                    <p className="text-xs text-muted-foreground">Min: {product.min_stock}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Activity Log */}

@@ -7,14 +7,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import PageHeader from "@/components/PageHeader";
 import { useProducts, Product } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Products() {
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { role, permissions } = useAuth();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
   const isAddingNew = dialogOpen && !editing;
+
+  const canAdd = role === "manager" || (permissions && permissions.can_add_product);
+  const canEdit = role === "manager" || (permissions && permissions.can_edit_product);
+  const canDelete = role === "manager" || (permissions && permissions.can_delete_product);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -57,30 +63,32 @@ export default function Products() {
               disabled={isAddingNew}
             />
           </div>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
-            <DialogTrigger asChild>
-              <Button size="icon" className="shrink-0 bg-primary text-primary-foreground">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[90vw] rounded-2xl">
-              <DialogHeader>
-                <DialogTitle>{editing ? "Edit Product" : "Add Product"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.price} required /></div>
-                  <div><Label>Stock</Label><Input name="stock" type="number" defaultValue={editing?.stock} required /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
-                  <div><Label>Min Stock</Label><Input name="minStock" type="number" defaultValue={editing?.minStock || 10} required /></div>
-                </div>
-                <Button type="submit" className="w-full bg-primary text-primary-foreground">{editing ? "Update" : "Add Product"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {canAdd && (
+            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
+              <DialogTrigger asChild>
+                <Button size="icon" className="shrink-0 bg-primary text-primary-foreground">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[90vw] rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editing ? "Edit Product" : "Add Product"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.price} required /></div>
+                    <div><Label>Stock</Label><Input name="stock" type="number" defaultValue={editing?.stock} required /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
+                    <div><Label>Min Stock</Label><Input name="minStock" type="number" defaultValue={editing?.minStock || 10} required /></div>
+                  </div>
+                  <Button type="submit" className="w-full bg-primary text-primary-foreground">{editing ? "Update" : "Add Product"}</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Product List */}
@@ -102,20 +110,24 @@ export default function Products() {
               </div>
               <span className="font-semibold text-foreground text-sm">RWF {product.price.toLocaleString()}</span>
               <div className="flex gap-1">
-                <button
-                  onClick={() => { setEditing(product); setDialogOpen(true); }}
-                  disabled={isAddingNew}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => deleteProduct(product.id)}
-                  disabled={isAddingNew}
-                  className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => { setEditing(product); setDialogOpen(true); }}
+                    disabled={isAddingNew}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => deleteProduct(product.id)}
+                    disabled={isAddingNew}
+                    className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           ))}

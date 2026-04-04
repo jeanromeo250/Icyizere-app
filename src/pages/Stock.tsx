@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, FileUp, Package, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
 import { useProducts, useStockEntries } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -26,8 +26,8 @@ interface InvoiceItem {
 export default function Stock() {
   const { permissions } = useAuth();
 
-  // Check if user has permission to view stock
-  if (permissions && !permissions.can_view_stock) {
+  
+  if (permissions && !permissions.can_add_stock && !permissions.can_remove_stock) {
     return <Navigate to="/" replace />;
   }
 
@@ -81,8 +81,15 @@ export default function Stock() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      toast({ title: "Invalid file", description: "Please upload an image or PDF of the invoice.", variant: "destructive" });
+    const supportedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "text/csv"
+    ];
+
+    if (!file.type.startsWith("image/") && !supportedTypes.includes(file.type)) {
+      toast({ title: "Invalid file", description: "Please upload an image, PDF, DOCX, or text invoice.", variant: "destructive" });
       return;
     }
 
@@ -94,25 +101,25 @@ export default function Stock() {
     setInvoiceLoading(true);
 
     try {
-      const base64 = await fileToBase64(file);
+      const rawText = await extractTextFromFile(file);
+      const parsedItems = parseInvoiceText(rawText);
 
-      const { data, error } = await supabase.functions.invoke("parse-invoice", {
-        body: {
-          imageBase64: base64,
-          mimeType: file.type,
-          existingProducts: products.map(p => ({ id: p.id, name: p.name })),
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        toast({ title: "Could not parse invoice", description: data.error, variant: "destructive" });
+      if (!parsedItems.length) {
+        toast({ title: "No items found", description: "We could not detect any invoice items. Please try a clearer invoice.", variant: "destructive" });
         return;
       }
 
-      setInvoiceItems(data.items || []);
-      setInvoiceMeta({ invoiceTotal: data.invoiceTotal, supplier: data.supplier, invoiceDate: data.invoiceDate });
+      const matchedItems = parsedItems.map(item => {
+        const match = findBestProductMatch(item.name, products);
+        return {
+          ...item,
+          matchedProductId: match?.id ?? null,
+          matchedProductName: match?.name ?? null,
+        };
+      });
+
+      setInvoiceItems(matchedItems);
+      setInvoiceMeta(parseInvoiceMeta(rawText));
       setInvoiceStep("review");
     } catch (err: any) {
       console.error(err);
@@ -123,25 +130,34 @@ export default function Stock() {
   };
 
   const handleConfirmInvoice = () => {
+    const unmatched = invoiceItems.filter(item => !item.matchedProductId);
+    if (unmatched.length > 0) {
+      toast({
+        title: "Missing products",
+        description: `The following items were not found in stock: ${unmatched.map(item => item.name).join(", ")}. Add them as products first or correct the invoice data.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const today = new Date().toISOString().split("T")[0];
     let added = 0;
 
     invoiceItems.forEach(item => {
-      if (item.matchedProductId) {
-        const product = products.find(p => p.id === item.matchedProductId);
-        if (product) {
-          addEntry({
-            productId: product.id,
-            productName: product.name,
-            type: "in",
-            quantity: item.quantity,
-            date: today,
-            note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · RWF ${item.unitPrice}/unit`,
-          });
-          updateProduct(product.id, { stock: product.stock + item.quantity });
-          added++;
-        }
-      }
+      if (!item.matchedProductId) return;
+      const product = products.find(p => p.id === item.matchedProductId);
+      if (!product) return;
+
+      addEntry({
+        productId: product.id,
+        productName: product.name,
+        type: "in",
+        quantity: item.quantity,
+        date: today,
+        note: `Invoice: ${invoiceMeta.supplier || "Supplier"} · RWF ${item.unitPrice}/unit`,
+      });
+      updateProduct(product.id, { stock: product.stock + item.quantity });
+      added++;
     });
 
     toast({ title: "Stock Updated", description: `${added} product(s) added to stock from invoice.` });
@@ -149,6 +165,8 @@ export default function Stock() {
     setInvoiceStep("upload");
     setInvoiceItems([]);
   };
+
+  const unmatchedCount = invoiceItems.filter(item => !item.matchedProductId).length;
 
   const updateItemMatch = (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
@@ -313,6 +331,12 @@ export default function Stock() {
                   </div>
                 )}
 
+                {unmatchedCount > 0 && (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                    <p className="font-semibold">Unmatched invoice items</p>
+                    <p className="text-xs">{unmatchedCount} item{unmatchedCount === 1 ? "" : "s"} could not be found in stock. Match them manually or add the missing product first.</p>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => { setInvoiceStep("upload"); setInvoiceItems([]); }}>
                     Re-upload
@@ -320,7 +344,7 @@ export default function Stock() {
                   <Button
                     className="flex-1 bg-primary text-primary-foreground"
                     onClick={handleConfirmInvoice}
-                    disabled={invoiceItems.filter(i => i.matchedProductId).length === 0}
+                    disabled={invoiceItems.length === 0 || unmatchedCount > 0}
                   >
                     Add {invoiceItems.filter(i => i.matchedProductId).length} to Stock
                   </Button>
@@ -441,23 +465,83 @@ function StockForm({
   selectedProduct?: string;
   onProductChange?: (productId: string) => void;
 }) {
-  const selectedProductData = products.find(p => p.id === selectedProduct);
+  const [internalSelectedProduct, setInternalSelectedProduct] = useState(selectedProduct || "");
+  const [productSearch, setProductSearch] = useState("");
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    setInternalSelectedProduct(selectedProduct || "");
+  }, [selectedProduct]);
+
+  const currentProductId = selectedProduct ?? internalSelectedProduct;
+  const productValue = currentProductId;
+
+  const setProduct = (productId: string) => {
+    if (onProductChange) {
+      onProductChange(productId);
+    } else {
+      setInternalSelectedProduct(productId);
+    }
+  };
+
+  const selectedProductData = products.find(p => p.id === productValue);
   const maxQuantity = stockType === "out" && selectedProductData ? selectedProductData.stock : undefined;
+
+  const filteredProducts = products
+    .filter((product) => product.name.toLowerCase().includes(productSearch.toLowerCase()))
+    .slice(0, 50);
 
   return (
     <form onSubmit={onSubmit} className="space-y-3">
+      <input type="hidden" name="product" value={productValue} />
       <div>
         <Label>Product</Label>
-        <Select name="product" required value={selectedProduct} onValueChange={onProductChange}>
-          <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-          <SelectContent>
-            {products.map(p => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}{stockType === "out" && p.stock !== undefined ? ` (${p.stock} available)` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between"
+            >
+              <span>{selectedProductData ? selectedProductData.name : "Search product..."}</span>
+              <span className="text-xs text-muted-foreground">Search</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0">
+            <Command>
+              <CommandInput
+                value={productSearch}
+                onValueChange={setProductSearch}
+                placeholder="Search products..."
+              />
+              <CommandList>
+                <CommandEmpty>No products found.</CommandEmpty>
+                <CommandGroup>
+                  {filteredProducts.map(product => (
+                    <CommandItem
+                      key={product.id}
+                      value={product.id}
+                      onSelect={() => {
+                        setProduct(product.id);
+                        setPopoverOpen(false);
+                        setProductSearch("");
+                      }}
+                    >
+                      <Check className={cn(
+                        "mr-2 h-4 w-4",
+                        product.id === productValue ? "opacity-100" : "opacity-0"
+                      )} />
+                      {product.name}{stockType === "out" && product.stock !== undefined ? ` (${product.stock} available)` : ""}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {selectedProductData && stockType === "out" && (
+          <p className="text-xs text-muted-foreground mt-1">Available stock: {selectedProductData.stock} units</p>
+        )}
       </div>
       <div>
         <Label>Quantity</Label>
@@ -469,11 +553,6 @@ function StockForm({
           required
           placeholder={stockType === "out" && maxQuantity ? `Max: ${maxQuantity}` : undefined}
         />
-        {stockType === "out" && selectedProductData && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Available stock: {selectedProductData.stock} units
-          </p>
-        )}
       </div>
       <div>
         <Label>Note</Label>
@@ -482,4 +561,129 @@ function StockForm({
       <Button type="submit" className="w-full bg-primary text-primary-foreground">Confirm</Button>
     </form>
   );
+}
+
+function normalizeInvoiceText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findBestProductMatch(name: string, products: { id: string; name: string }[]) {
+  const normalizedName = normalizeInvoiceText(name);
+  if (!normalizedName) return null;
+
+  const exactMatch = products.find(product => normalizeInvoiceText(product.name) === normalizedName);
+  if (exactMatch) return exactMatch;
+
+  const containsMatch = products.find(product => normalizeInvoiceText(product.name).includes(normalizedName) || normalizedName.includes(normalizeInvoiceText(product.name)));
+  if (containsMatch) return containsMatch;
+
+  const tokenMatches = products.map(product => {
+    const productTokens = normalizeInvoiceText(product.name).split(" ").filter(Boolean);
+    const invoiceTokens = normalizedName.split(" ").filter(Boolean);
+    const commonTokens = productTokens.filter(token => invoiceTokens.includes(token));
+    return {
+      product,
+      score: commonTokens.length,
+    };
+  }).filter(result => result.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return tokenMatches.length ? tokenMatches[0].product : null;
+}
+
+function extractInvoiceDate(text: string): string | undefined {
+  const match = text.match(/\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{4})\b/);
+  return match?.[0];
+}
+
+function parseInvoiceMeta(text: string) {
+  return {
+    supplier: undefined,
+    invoiceDate: extractInvoiceDate(text),
+    invoiceTotal: undefined,
+  };
+}
+
+function parseInvoiceText(raw: string) {
+  const lines = raw
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0 && !/invoice|subtotal|total|tax|amount|balance|qty|quantity|unit price|description/i.test(line));
+
+  const items: InvoiceItem[] = [];
+
+  for (const line of lines) {
+    const normalizedLine = line.replace(/,/g, "");
+    const numbers = Array.from(normalizedLine.matchAll(/\d+(?:\.\d+)?/g)).map(match => match[0]);
+    if (numbers.length < 2) continue;
+
+    const quantity = parseInt(numbers[0], 10);
+    if (isNaN(quantity) || quantity <= 0) continue;
+
+    const totalPrice = parseFloat(numbers[numbers.length - 1]);
+    if (isNaN(totalPrice)) continue;
+
+    const unitPrice = numbers.length >= 2 ? parseFloat(numbers[numbers.length - 2]) || totalPrice / quantity : totalPrice / quantity;
+    const firstNumberIndex = normalizedLine.indexOf(numbers[0]);
+    const name = firstNumberIndex >= 0 ? line.slice(0, firstNumberIndex).trim() : line;
+    if (!name || name.length < 2) continue;
+
+    items.push({
+      name,
+      quantity,
+      unitPrice,
+      totalPrice,
+      matchedProductId: null,
+      matchedProductName: null,
+    });
+  }
+
+  return items;
+}
+
+async function extractTextFromFile(file: File) {
+  if (file.type.startsWith("image/")) {
+    const { createWorker } = await import("tesseract.js");
+    const worker = await createWorker({ logger: () => null });
+    await worker.load();
+    await worker.loadLanguage("eng");
+    await worker.initialize("eng");
+    const { data } = await worker.recognize(file);
+    await worker.terminate();
+    return data.text;
+  }
+
+  if (file.type === "application/pdf") {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const url = URL.createObjectURL(file);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString();
+    const loadingTask = pdfjsLib.getDocument(url);
+    const pdf = await loadingTask.promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item: any) => item.str).join(" ");
+      text += `${pageText}\n`;
+    }
+    URL.revokeObjectURL(url);
+    return text;
+  }
+
+  if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const { default: mammothLib } = await import("mammoth");
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammothLib.extractRawText({ arrayBuffer });
+    return result.value;
+  }
+
+  if (file.type === "text/plain" || file.type === "text/csv") {
+    return await file.text();
+  }
+
+  throw new Error("Unsupported invoice file type");
 }

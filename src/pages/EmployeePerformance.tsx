@@ -50,33 +50,44 @@ export default function EmployeePerformance() {
       .eq("user_id", employeeId!)
       .single();
 
-    if (profile) setEmployeeName(profile.full_name);
+    const profileName = profile?.full_name;
+    setEmployeeName(profileName || "Employee");
 
     // Get filtered data based on period
     const start = getStartDate(period);
-    let salesQuery = (supabase
+    const startDate = start ? format(start, "yyyy-MM-dd") : undefined;
+    const fullName = profile?.full_name || "";
+
+    const { data: salesById } = await (supabase
       .from("sales" as any) as any)
       .select("*")
-      .eq("employee_name", profile?.full_name || "");
+      .eq("user_id", employeeId!)
+      .gte("date", startDate || "0000-01-01");
 
-    let activityQuery = (supabase
-      .from("activity_log" as any) as any)
-      .select("*")
-      .eq("user_id", employeeId!);
-
-    if (start) {
-      const startDateStr = format(start, "yyyy-MM-dd");
-      salesQuery = salesQuery.gte("date", startDateStr);
-      activityQuery = activityQuery.gte("created_at", start.toISOString());
+    let sales = salesById || [];
+    if ((!sales || sales.length === 0) && fullName) {
+      const { data: salesByName } = await (supabase
+        .from("sales" as any) as any)
+        .select("*")
+        .eq("employee_name", fullName)
+        .gte("date", startDate || "0000-01-01");
+      sales = salesByName || [];
     }
 
-    const [salesResult, activityResult] = await Promise.all([
-      salesQuery,
-      activityQuery,
-    ]);
+    if (!profileName && sales.length > 0) {
+      const fallbackName = sales[0]?.employee_name;
+      if (fallbackName) {
+        setEmployeeName(fallbackName);
+      }
+    }
 
-    const sales = salesResult.data || [];
-    const activities = activityResult.data || [];
+    const { data: activityData } = await (supabase
+      .from("activity_log" as any) as any)
+      .select("*")
+      .eq("user_id", employeeId!)
+      .gte("created_at", start ? start.toISOString() : "0000-01-01T00:00:00Z");
+
+    const activities = activityData || [];
 
     // Calculate metrics
     const totalSales = sales.reduce((sum: number, sale: any) => sum + Number(sale.total), 0);

@@ -51,6 +51,13 @@ async function getUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+async function getUserFullName(): Promise<string | null> {
+  const userId = await getUserId();
+  if (!userId) return null;
+  const { data } = await db.from("profiles").select("full_name").eq("user_id", userId).single();
+  return data?.full_name ?? null;
+}
+
 // ---------- useProducts ----------
 
 export function useProducts() {
@@ -189,6 +196,7 @@ export function useSales() {
   const addSale = async (s: Omit<Sale, "id">) => {
     const userId = await getUserId();
     if (!userId) return;
+    const fullName = s.employeeName || (await getUserFullName()) || "Unknown";
     const { data, error } = await db
       .from("sales")
       .insert({
@@ -197,7 +205,7 @@ export function useSales() {
         quantity: s.quantity,
         total: s.total,
         date: s.date,
-        employee_name: s.employeeName,
+        employee_name: fullName,
         user_id: userId,
       })
       .select()
@@ -211,7 +219,7 @@ export function useSales() {
           quantity: Number(data.quantity),
           total: Number(data.total),
           date: data.date,
-          employeeName: data.employee_name ?? "Unknown",
+          employeeName: data.employee_name ?? fullName,
         },
         ...prev,
       ]);
