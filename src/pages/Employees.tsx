@@ -156,7 +156,7 @@ export default function Employees() {
     }
 
     // Create profile for the employee
-    const { error: profileError } = await supabase.from("profiles").upsert({
+    const { error: profileError } = await (supabase.from("profiles" as any) as any).upsert({
       user_id: employeeUserId,
       full_name: fullName,
       business_name: null,
