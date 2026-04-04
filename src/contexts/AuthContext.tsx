@@ -74,14 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileRes.data) setProfile(profileRes.data as any);
     if (permRes.data) setPermissions(permRes.data as any);
 
-    const { data: roleData } = await supabase
+    const { data: roleData } = await (supabase
       .from("user_roles" as any)
       .select("role")
       .eq("user_id", userId)
-      .single();
+      .single() as any);
 
     if (roleData?.role) {
-      setRole((roleData as any).role as AppRole);
+      setRole(roleData.role as AppRole);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       const metaRole = user?.user_metadata?.role as string;
