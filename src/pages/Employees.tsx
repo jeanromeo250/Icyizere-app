@@ -169,7 +169,7 @@ export default function Employees() {
     }
 
     // Insert role
-    const { error: roleError } = await supabase.from("user_roles").upsert({
+    const { error: roleError } = await (supabase.from("user_roles" as any) as any).upsert({
       user_id: employeeUserId,
       role: "employee",
     });
