@@ -16,6 +16,7 @@ import Sales from "./pages/Sales";
 import Expenses from "./pages/Expenses";
 import Employees from "./pages/Employees";
 import EmployeeActivity from "./pages/EmployeeActivity";
+import EmployeePerformance from "./pages/EmployeePerformance";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
                 <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
                 <Route path="/employees/:employeeId/activity" element={<ProtectedRoute><EmployeeActivity /></ProtectedRoute>} />
+                <Route path="/employees/:employeeId/performance" element={<ProtectedRoute><EmployeePerformance /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

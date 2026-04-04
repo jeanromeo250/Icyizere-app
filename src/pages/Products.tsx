@@ -14,6 +14,8 @@ export default function Products() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
+  const isAddingNew = dialogOpen && !editing;
+
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -52,6 +54,7 @@ export default function Products() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9"
+              disabled={isAddingNew}
             />
           </div>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
@@ -83,7 +86,10 @@ export default function Products() {
         {/* Product List */}
         <div className="space-y-2">
           {filtered.map(product => (
-            <div key={product.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card">
+            <div key={product.id} className={cn(
+              "flex items-center gap-3 p-3 rounded-xl border border-border bg-card",
+              isAddingNew && "opacity-50 pointer-events-none"
+            )}>
               <div className={cn(
                 "p-2.5 rounded-lg",
                 product.stock <= product.minStock ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
@@ -98,13 +104,15 @@ export default function Products() {
               <div className="flex gap-1">
                 <button
                   onClick={() => { setEditing(product); setDialogOpen(true); }}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary"
+                  disabled={isAddingNew}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => deleteProduct(product.id)}
-                  className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10"
+                  disabled={isAddingNew}
+                  className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

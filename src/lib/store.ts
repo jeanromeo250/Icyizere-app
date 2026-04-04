@@ -59,7 +59,11 @@ export function useProducts() {
 
   const fetchProducts = useCallback(async () => {
     const userId = await getUserId();
-    if (!userId) return;
+    if (!userId) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     const { data } = await db
       .from("products")
       .select("*")
@@ -81,6 +85,16 @@ export function useProducts() {
 
   useEffect(() => {
     fetchProducts();
+
+    const { data: authListener } = db.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchProducts();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [fetchProducts]);
 
   const addProduct = async (p: Omit<Product, "id">) => {

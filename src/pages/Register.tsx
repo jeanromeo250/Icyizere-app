@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Eye, EyeOff, MapPin, Phone, Building2 } from "lucide-react";
+import { Eye, EyeOff, MapPin, Phone, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BRAND_NAME, BRAND_TAGLINE, BrandLogo } from "@/components/BrandLogo";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -51,15 +52,16 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-primary px-6">
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-8">
-        {/* Logo & Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-4">
-            <Store className="h-8 w-8 text-accent-foreground" />
-          </div>
-          <h1 className="text-3xl font-display font-bold text-primary-foreground">E-Shop</h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">Smart Stock & Business Management</p>
+    <div className="min-h-screen flex flex-col bg-primary px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-8">
+        <div className="mb-8 text-center">
+          <BrandLogo variant="hero" className="mb-5" />
+          <h1 className="font-display text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
+            {BRAND_NAME}
+          </h1>
+          <p className="mt-2 max-w-[280px] mx-auto text-sm leading-relaxed text-primary-foreground/75">
+            {BRAND_TAGLINE}
+          </p>
         </div>
 
         {/* Registration Form */}

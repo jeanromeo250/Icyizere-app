@@ -11,6 +11,8 @@ import { useProducts, useStockEntries } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 interface InvoiceItem {
   name: string;
@@ -22,10 +24,18 @@ interface InvoiceItem {
 }
 
 export default function Stock() {
+  const { permissions } = useAuth();
+
+  // Check if user has permission to view stock
+  if (permissions && !permissions.can_view_stock) {
+    return <Navigate to="/" replace />;
+  }
+
   const { products, updateProduct } = useProducts();
   const { entries, addEntry } = useStockEntries();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockType, setStockType] = useState<"in" | "out">("in");
+  const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
@@ -40,6 +50,16 @@ export default function Stock() {
     const note = fd.get("note") as string;
     const product = products.find(p => p.id === productId);
     if (!product) return;
+
+    // Validation: Prevent stock out if quantity exceeds available stock
+    if (stockType === "out" && quantity > product.stock) {
+      toast({
+        title: "Insufficient Stock",
+        description: `Cannot remove ${quantity} units. Only ${product.stock} units available for ${product.name}.`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     addEntry({
       productId,
@@ -162,11 +182,11 @@ export default function Stock() {
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] rounded-2xl">
               <DialogHeader><DialogTitle>Stock IN</DialogTitle></DialogHeader>
-              <StockForm products={products} onSubmit={handleSubmit} />
+              <StockForm products={products} onSubmit={handleSubmit} stockType="in" />
             </DialogContent>
           </Dialog>
 
-          <Dialog open={dialogOpen && stockType === "out"} onOpenChange={(o) => { setDialogOpen(o); setStockType("out"); }}>
+          <Dialog open={dialogOpen && stockType === "out"} onOpenChange={(o) => { setDialogOpen(o); setStockType("out"); if (!o) setSelectedProduct(""); }}>
             <DialogTrigger asChild>
               <button className="flex items-center gap-3 p-4 rounded-xl border border-warning/30 bg-warning/5 text-left">
                 <div className="p-2 rounded-lg bg-warning/20">
@@ -180,7 +200,13 @@ export default function Stock() {
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] rounded-2xl">
               <DialogHeader><DialogTitle>Stock OUT</DialogTitle></DialogHeader>
-              <StockForm products={products} onSubmit={handleSubmit} />
+              <StockForm
+                products={products}
+                onSubmit={handleSubmit}
+                stockType="out"
+                selectedProduct={selectedProduct}
+                onProductChange={setSelectedProduct}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -304,30 +330,85 @@ export default function Stock() {
           </DialogContent>
         </Dialog>
 
-        {/* History */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="font-semibold text-foreground mb-3">Recent Activity</h3>
-          <div className="space-y-3">
-            {entries.slice().reverse().map(entry => (
-              <div key={entry.id} className="flex items-center gap-3 text-sm">
-                <div className={cn(
-                  "p-1.5 rounded-lg",
-                  entry.type === "in" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                )}>
-                  {entry.type === "in" ? <ArrowDownToLine className="h-4 w-4" /> : <ArrowUpFromLine className="h-4 w-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{entry.productName}</p>
-                  <p className="text-xs text-muted-foreground">{entry.note} · {entry.date}</p>
-                </div>
-                <span className={cn(
-                  "font-semibold",
-                  entry.type === "in" ? "text-success" : "text-warning"
-                )}>
-                  {entry.type === "in" ? "+" : "-"}{entry.quantity}
-                </span>
-              </div>
-            ))}
+        {/* All Products Current Stock Table */}
+        <div className="rounded-xl border border-border bg-card p-4 overflow-x-auto">
+          <h3 className="font-semibold text-foreground mb-4 text-base">All Products — Current Stock</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground text-xs">Product</th>
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground text-xs">Category</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground text-xs">Available</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground text-xs">Min</th>
+                  <th className="text-center py-2 px-2 font-semibold text-muted-foreground text-xs">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(product => (
+                  <tr key={product.id} className="border-b border-border/50">
+                    <td className="py-3 px-2 text-foreground font-medium">{product.name}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{product.category || "-"}</td>
+                    <td className="py-3 px-2 text-foreground text-right font-medium">{product.stock}</td>
+                    <td className="py-3 px-2 text-muted-foreground text-right">{product.minStock}</td>
+                    <td className="py-3 px-2 text-center">
+                      <span className={cn(
+                        "text-xs font-semibold px-2 py-1 rounded",
+                        product.stock > product.minStock
+                          ? "bg-success/20 text-success"
+                          : "bg-warning/20 text-warning"
+                      )}>
+                        {product.stock > product.minStock ? "OK" : "LOW"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {products.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No products added yet</p>
+            )}
+          </div>
+        </div>
+
+        {/* Stock Movement History Table */}
+        <div className="rounded-xl border border-border bg-card p-4 overflow-x-auto">
+          <h3 className="font-semibold text-foreground mb-4 text-base">Stock Movement History</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground text-xs">Date</th>
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground text-xs">Product</th>
+                  <th className="text-center py-2 px-2 font-semibold text-muted-foreground text-xs">Type</th>
+                  <th className="text-right py-2 px-2 font-semibold text-muted-foreground text-xs">Qty</th>
+                  <th className="text-left py-2 px-2 font-semibold text-muted-foreground text-xs">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.slice().reverse().map(entry => (
+                  <tr key={entry.id} className="border-b border-border/50">
+                    <td className="py-3 px-2 text-muted-foreground text-xs">{entry.date}</td>
+                    <td className="py-3 px-2 text-foreground font-medium">{entry.productName}</td>
+                    <td className="py-3 px-2 text-center">
+                      <span className={cn(
+                        "text-xs font-semibold px-2 py-1 rounded",
+                        entry.type === "in"
+                          ? "bg-success/20 text-success"
+                          : "bg-destructive/20 text-destructive"
+                      )}>
+                        {entry.type === "in" ? "IN" : "OUT"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 text-foreground font-semibold text-right">{entry.quantity}</td>
+                    <td className="py-3 px-2 text-muted-foreground text-xs max-w-xs truncate">{entry.note || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {entries.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No stock movements yet</p>
+            )}
           </div>
         </div>
       </div>
@@ -347,27 +428,56 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-function StockForm({ products, onSubmit }: { products: { id: string; name: string }[]; onSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
+function StockForm({
+  products,
+  onSubmit,
+  stockType,
+  selectedProduct,
+  onProductChange
+}: {
+  products: { id: string; name: string; stock?: number }[];
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  stockType: "in" | "out";
+  selectedProduct?: string;
+  onProductChange?: (productId: string) => void;
+}) {
+  const selectedProductData = products.find(p => p.id === selectedProduct);
+  const maxQuantity = stockType === "out" && selectedProductData ? selectedProductData.stock : undefined;
+
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <div>
         <Label>Product</Label>
-        <Select name="product" required>
+        <Select name="product" required value={selectedProduct} onValueChange={onProductChange}>
           <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
           <SelectContent>
             {products.map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              <SelectItem key={p.id} value={p.id}>
+                {p.name}{stockType === "out" && p.stock !== undefined ? ` (${p.stock} available)` : ""}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div>
         <Label>Quantity</Label>
-        <Input name="quantity" type="number" min="1" required />
+        <Input
+          name="quantity"
+          type="number"
+          min="1"
+          max={maxQuantity}
+          required
+          placeholder={stockType === "out" && maxQuantity ? `Max: ${maxQuantity}` : undefined}
+        />
+        {stockType === "out" && selectedProductData && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Available stock: {selectedProductData.stock} units
+          </p>
+        )}
       </div>
       <div>
         <Label>Note</Label>
-        <Input name="note" placeholder="e.g. Supplier delivery" />
+        <Input name="note" placeholder={stockType === "in" ? "e.g. Supplier delivery" : "e.g. Customer sale"} />
       </div>
       <Button type="submit" className="w-full bg-primary text-primary-foreground">Confirm</Button>
     </form>

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -41,11 +41,16 @@ export default function Login() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-4">
-            <Store className="h-8 w-8 text-accent-foreground" />
-          </div>
-          <h1 className="text-3xl font-display font-bold text-primary-foreground">E-Shop</h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">Smart Stock & Business Management</p>
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-card mb-4 overflow-hidden shadow-sm">
+  <img 
+    src="/favicon.ico" 
+    alt="ICYIZERE BUSINESS LTD logo" 
+    className="h-full w-full object-cover"
+  />
+</div>
+
+          <h1 className="text-3xl font-display font-bold text-primary-foreground">ICYIZERE BUSINESS LTD</h1>
+          <p className="text-primary-foreground/70 mt-1 text-sm">Exchange Services</p>
         </div>
 
         {/* Form */}
@@ -55,7 +60,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="you@example.com" required />
+              <Input id="email" name="email" type="email" placeholder="Email" required />
             </div>
 
             <div className="space-y-1.5">
@@ -84,12 +89,7 @@ export default function Login() {
           </form>
 
           <div className="mt-4 text-center">
-            <button
-              onClick={() => navigate("/register")}
-              className="text-sm text-primary font-medium hover:underline"
-            >
-              New business? Create Manager Account
-            </button>
+
           </div>
         </div>
       </div>

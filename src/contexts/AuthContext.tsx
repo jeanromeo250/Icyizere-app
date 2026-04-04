@@ -21,6 +21,7 @@ interface EmployeePermissions {
   manager_user_id: string;
   can_add_stock: boolean;
   can_remove_stock: boolean;
+  can_view_stock: boolean;
   can_view_products: boolean;
   can_add_products: boolean;
   can_edit_products: boolean;

@@ -5,6 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { useSales, useExpenses } from "@/lib/store";
 import { format, subDays, startOfWeek, startOfMonth, startOfYear, isAfter, parseISO } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 type Period = "today" | "week" | "month" | "year" | "all";
 
@@ -22,6 +24,13 @@ function getStartDate(period: Period): Date | null {
 const TAX_RATE = 0.18; // 18% estimated tax
 
 export default function Reports() {
+  const { permissions } = useAuth();
+
+  // Check if user has permission to view stock (required for reports)
+  if (permissions && !permissions.can_view_stock) {
+    return <Navigate to="/" replace />;
+  }
+
   const { sales, loading: salesLoading } = useSales();
   const { expenses, loading: expensesLoading } = useExpenses();
   const [period, setPeriod] = useState<Period>("month");

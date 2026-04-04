@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Plus, Receipt, Zap, Droplets, Home, MoreHorizontal } from "lucide-react";
+import { Plus, Receipt, Zap, Droplets, Home, MoreHorizontal, TrendingDown, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import PageHeader from "@/components/PageHeader";
+import StatCard from "@/components/StatCard";
 import { useExpenses } from "@/lib/store";
+import { format, startOfMonth } from "date-fns";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Rent: <Home className="h-4 w-4" />,
@@ -19,6 +21,12 @@ export default function Expenses() {
   const { expenses, addExpense } = useExpenses();
   const [dialogOpen, setDialogOpen] = useState(false);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const startOfCurrentMonth = startOfMonth(new Date());
+  const thisMonthExpenses = expenses.filter(e => new Date(e.date) >= startOfCurrentMonth);
+  const thisMonthTotal = thisMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const categoriesCount = new Set(expenses.map(e => e.category)).size;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,9 +42,32 @@ export default function Expenses() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Expenses" subtitle={`RWF ${totalExpenses.toLocaleString()} total`} />
+      <PageHeader title="Expenses" subtitle="Track business expenses" />
 
       <div className="px-4 space-y-4 mt-2">
+        {/* Stat Cards */}
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard
+            title="Total Expenses"
+            value={`RWF ${totalExpenses.toLocaleString()}`}
+            icon={TrendingDown}
+            variant="destructive"
+            compact
+          />
+          <StatCard
+            title="This Month"
+            value={`RWF ${thisMonthTotal.toLocaleString()}`}
+            icon={Receipt}
+            variant="warning"
+            compact
+          />
+          <StatCard
+            title="Categories"
+            value={categoriesCount.toString()}
+            icon={Grid3x3}
+            compact
+          />
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full bg-primary text-primary-foreground gap-2">
@@ -78,6 +109,9 @@ export default function Expenses() {
               <span className="font-semibold text-destructive text-sm">-RWF {expense.amount.toLocaleString()}</span>
             </div>
           ))}
+          {expenses.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">No expenses recorded yet</p>
+          )}
         </div>
       </div>
     </div>

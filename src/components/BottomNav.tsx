@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, Receipt, Users, BarChart3, Bell, Warehouse } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Receipt, Users, BarChart3, Warehouse } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,25 +9,30 @@ const baseItems = [
   { icon: ShoppingCart, label: "Sales", path: "/sales" },
   { icon: Receipt, label: "Expenses", path: "/expenses" },
   { icon: Warehouse, label: "Stock", path: "/stock" },
+  { icon: BarChart3, label: "Reports", path: "/reports" },
 ];
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, permissions } = useAuth();
 
   const hiddenPaths = ["/login", "/register"];
   if (hiddenPaths.includes(location.pathname)) return null;
 
   const navItems = [
-    ...baseItems,
+    ...baseItems.filter(item => {
+      // Hide Reports if user doesn't have permission to view stock
+      if (item.label === "Reports" && permissions && !permissions.can_view_stock) {
+        return false;
+      }
+      return true;
+    }),
     ...(role === "manager"
       ? [
-          { icon: BarChart3, label: "Reports", path: "/reports" },
-          { icon: Users, label: "Team", path: "/employees" },
+          { icon: Users, label: "Employees", path: "/employees" },
         ]
       : []),
-    { icon: Bell, label: "Alerts", path: "/notifications" },
   ];
 
   return (
