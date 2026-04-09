@@ -487,8 +487,11 @@ function StockForm({
   const selectedProductData = products.find(p => p.id === productValue);
   const maxQuantity = stockType === "out" && selectedProductData ? selectedProductData.stock : undefined;
 
+  const normalizeSearch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normalizedSearch = normalizeSearch(productSearch);
+
   const filteredProducts = products
-    .filter((product) => product.name.toLowerCase().includes(productSearch.toLowerCase()))
+    .filter((product) => normalizeSearch(product.name).includes(normalizedSearch))
     .slice(0, 50);
 
   return (
@@ -508,7 +511,7 @@ function StockForm({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-full p-0">
-            <Command>
+            <Command shouldFilter={false}>
               <CommandInput
                 value={productSearch}
                 onValueChange={setProductSearch}
@@ -520,7 +523,7 @@ function StockForm({
                   {filteredProducts.map(product => (
                     <CommandItem
                       key={product.id}
-                      value={product.id}
+                      value={product.name}
                       onSelect={() => {
                         setProduct(product.id);
                         setPopoverOpen(false);
