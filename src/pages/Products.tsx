@@ -32,9 +32,9 @@ export default function Products() {
     const data = {
       name: fd.get("name") as string,
       price: parseFloat(fd.get("price") as string),
-      stock: parseInt(fd.get("stock") as string),
+      stock: parseFloat(fd.get("stock") as string),
       category: fd.get("category") as string,
-      minStock: parseInt(fd.get("minStock") as string),
+      minStock: parseFloat(fd.get("minStock") as string),
     };
 
     if (editing) {
@@ -78,11 +78,11 @@ export default function Products() {
                   <div><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.price} required /></div>
-                    <div><Label>Stock</Label><Input name="stock" type="number" defaultValue={editing?.stock} required /></div>
+                    <div><Label>Stock</Label><Input name="stock" type="number" min="0" step="any" defaultValue={editing?.stock} required /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
-                    <div><Label>Min Stock</Label><Input name="minStock" type="number" defaultValue={editing?.minStock || 10} required /></div>
+                    <div><Label>Min Stock</Label><Input name="minStock" type="number" min="0" step="any" defaultValue={editing?.minStock ?? 10} required /></div>
                   </div>
                   <Button type="submit" className="w-full bg-primary text-primary-foreground">{editing ? "Update" : "Add Product"}</Button>
                 </form>

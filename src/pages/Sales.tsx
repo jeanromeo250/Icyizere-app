@@ -12,6 +12,7 @@ import StatCard from "@/components/StatCard";
 import { useProducts, useSales, useCustomerCredits } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
 import { summarizeCustomerCredits } from "@/lib/credit";
+import { toast } from "@/hooks/use-toast";
 
 export default function Sales() {
   const { profile } = useAuth();
@@ -21,7 +22,7 @@ export default function Sales() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [pricePerUnit, setPricePerUnit] = useState(0);
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -45,7 +46,8 @@ export default function Sales() {
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
   const [customerPaymentInput, setCustomerPaymentInput] = useState<Record<string, string>>({});
 
-  const total = selectedProduct ? pricePerUnit * quantity : 0;
+  const saleQuantity = Number(quantity);
+  const total = selectedProduct ? pricePerUnit * saleQuantity : 0;
   const summary = useMemo(() => summarizeCustomerCredits(
     credits.map((credit) => ({
       customerName: credit.customerName,
@@ -121,19 +123,28 @@ export default function Sales() {
     e.preventDefault();
     if (!selectedProduct) return;
 
+    if (!Number.isFinite(saleQuantity) || saleQuantity <= 0 || saleQuantity > selectedProduct.stock) {
+      toast({
+        title: "Invalid quantity",
+        description: `Enter a quantity greater than 0 and no more than the ${selectedProduct.stock} units in stock.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     addSale({
       productId: selectedProduct.id,
       productName: selectedProduct.name,
-      quantity,
+      quantity: saleQuantity,
       total,
       date: new Date().toISOString().split("T")[0],
       employeeName: profile?.full_name || "Manager",
     });
 
-    updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - quantity) });
+    updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - saleQuantity) });
     setDialogOpen(false);
     setSelectedProduct(null);
-    setQuantity(1);
+    setQuantity("1");
     setPricePerUnit(0);
   };
 
@@ -267,7 +278,7 @@ export default function Sales() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Quantity</Label>
-                    <Input type="number" min="1" max={selectedProduct?.stock || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} />
+                    <Input type="number" min="0" max={selectedProduct?.stock} step="any" required value={quantity} onChange={e => setQuantity(e.target.value)} />
                   </div>
                   <div>
                     <Label>Price per Unit (RWF)</Label>

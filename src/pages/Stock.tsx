@@ -46,10 +46,19 @@ export default function Stock() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const productId = fd.get("product") as string;
-    const quantity = parseInt(fd.get("quantity") as string);
+    const quantity = parseFloat(fd.get("quantity") as string);
     const note = fd.get("note") as string;
     const product = products.find(p => p.id === productId);
     if (!product) return;
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast({
+        title: "Invalid quantity",
+        description: "Enter a quantity greater than 0.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validation: Prevent stock out if quantity exceeds available stock
     if (stockType === "out" && quantity > product.stock) {
@@ -551,9 +560,10 @@ function StockForm({
         <Input
           name="quantity"
           type="number"
-          min="1"
-          max={maxQuantity}
+          min="0"
+          step="any"
           required
+          max={maxQuantity}
           placeholder={stockType === "out" && maxQuantity ? `Max: ${maxQuantity}` : undefined}
         />
       </div>
@@ -624,8 +634,8 @@ function parseInvoiceText(raw: string) {
     const numbers = Array.from(normalizedLine.matchAll(/\d+(?:\.\d+)?/g)).map(match => match[0]);
     if (numbers.length < 2) continue;
 
-    const quantity = parseInt(numbers[0], 10);
-    if (isNaN(quantity) || quantity <= 0) continue;
+    const quantity = parseFloat(numbers[0]);
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
 
     const totalPrice = parseFloat(numbers[numbers.length - 1]);
     if (isNaN(totalPrice)) continue;
