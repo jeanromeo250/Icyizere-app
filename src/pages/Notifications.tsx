@@ -172,11 +172,11 @@ export default function Notifications() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Notifications" subtitle="Today's Activity" />
 
       {/* Daily Summary Cards */}
-      <div className="px-4 mt-2 mb-4">
+      <div className="mx-auto mt-2 mb-4 max-w-screen-xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-success/30 bg-success/5 p-3">
             <p className="text-xs text-muted-foreground font-medium">Total Sold</p>
@@ -202,7 +202,7 @@ export default function Notifications() {
       </div>
 
       {/* Notification Feed */}
-      <div className="px-4 space-y-2">
+      <div className="mx-auto max-w-screen-xl space-y-2 px-4 sm:px-6 lg:px-8">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-1">
           <Bell className="h-4 w-4 text-primary" />
           Activity Feed

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import NetworkStatus from "@/components/NetworkStatus";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import Login from "./pages/Login";
@@ -35,27 +36,30 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <div className="max-w-lg mx-auto min-h-screen bg-background">
-              <NetworkStatus />
-              <PwaInstallPrompt />
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-                <Route path="/stock" element={<ProtectedRoute><Stock /></ProtectedRoute>} />
-                <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-                <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
-                <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
-                <Route path="/employees/:employeeId/activity" element={<ProtectedRoute><EmployeeActivity /></ProtectedRoute>} />
-                <Route path="/employees/:employeeId/performance" element={<ProtectedRoute><EmployeePerformance /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <BottomNav />
+            <div className="mx-auto flex min-h-screen w-full max-w-screen-2xl bg-background shadow-sm">
+              <DesktopSidebar />
+              <main className="min-h-screen min-w-0 flex-1">
+                <NetworkStatus />
+                <PwaInstallPrompt />
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+                  <Route path="/stock" element={<ProtectedRoute><Stock /></ProtectedRoute>} />
+                  <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+                  <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+                  <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+                  <Route path="/employees/:employeeId/activity" element={<ProtectedRoute><EmployeeActivity /></ProtectedRoute>} />
+                  <Route path="/employees/:employeeId/performance" element={<ProtectedRoute><EmployeePerformance /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <BottomNav />
+              </main>
             </div>
           </AuthProvider>
         </BrowserRouter>

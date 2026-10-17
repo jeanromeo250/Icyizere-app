@@ -179,15 +179,15 @@ export default function EmployeeActivity() {
 
   if (role !== "manager") {
     return (
-      <div className="pb-24 px-4 pt-8 text-center">
+      <div className="mx-auto max-w-screen-xl px-4 pb-24 pt-8 text-center sm:px-6 lg:px-8 lg:pb-8">
         <p className="text-muted-foreground">Access restricted to managers.</p>
       </div>
     );
   }
 
   return (
-    <div className="pb-24">
-      <div className="px-4 pt-4">
+    <div className="pb-24 lg:pb-8">
+      <div className="px-4 pt-4 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" onClick={() => navigate("/employees")} className="mb-2">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
@@ -195,7 +195,7 @@ export default function EmployeeActivity() {
 
       <PageHeader title={employeeName || "Employee"} subtitle="Activity & Performance" />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Period Selector */}
         <Select value={period} onValueChange={setPeriod}>
           <SelectTrigger>

@@ -113,9 +113,9 @@ export default function Settings() {
 
   if (view === "profile") {
     return (
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8">
         <PageHeader title="Personal Information" subtitle="Update your details" />
-        <div className="px-4 space-y-4 mt-2">
+        <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border border-border bg-card p-4 space-y-4">
             <div>
               <Label className="text-xs text-muted-foreground">Email</Label>
@@ -154,9 +154,9 @@ export default function Settings() {
 
   if (view === "security") {
     return (
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8">
         <PageHeader title="Security" subtitle="Account security settings" />
-        <div className="px-4 space-y-4 mt-2">
+        <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Account Email</Label>
@@ -253,9 +253,9 @@ export default function Settings() {
 
   if (view === "password") {
     return (
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8">
         <PageHeader title="Change Password" subtitle="Set a new password" />
-        <div className="px-4 mt-2">
+        <div className="mx-auto mt-2 max-w-screen-xl px-4 sm:px-6 lg:px-8">
           <form onSubmit={handleChangePassword} className="rounded-xl border border-border bg-card p-4 space-y-4">
             <div>
               <Label>New Password</Label>
@@ -289,9 +289,9 @@ export default function Settings() {
 
   // Main settings view
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Settings" subtitle="Manage your account" />
-      <div className="px-4 space-y-3 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-3 px-4 sm:px-6 lg:px-8">
         {/* User info card */}
         <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">

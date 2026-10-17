@@ -309,9 +309,9 @@ export default function Employees() {
 
   if (role !== "manager") {
     return (
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8">
         <PageHeader title="Employees" subtitle="Access restricted" />
-        <div className="px-4 mt-8 text-center">
+        <div className="mx-auto mt-8 max-w-screen-xl px-4 text-center sm:px-6 lg:px-8">
           <p className="text-muted-foreground">Only managers can access this page.</p>
         </div>
       </div>
@@ -319,10 +319,10 @@ export default function Employees() {
   }
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Employees" subtitle="Manage your team" />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

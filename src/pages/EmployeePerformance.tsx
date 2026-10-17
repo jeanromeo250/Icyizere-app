@@ -136,9 +136,9 @@ export default function EmployeePerformance() {
 
   if (role !== "manager") {
     return (
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8">
         <PageHeader title="Employee Performance" subtitle="Access restricted" />
-        <div className="px-4 mt-8 text-center">
+        <div className="mx-auto mt-8 max-w-screen-xl px-4 text-center sm:px-6 lg:px-8">
           <p className="text-muted-foreground">Only managers can access this page.</p>
         </div>
       </div>
@@ -154,10 +154,10 @@ export default function EmployeePerformance() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title={`${employeeName}'s Performance`} subtitle={`${periodLabel[period]} Summary`} />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <Button
           variant="ghost"

@@ -47,10 +47,10 @@ export default function Products() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Products" subtitle={`${products.length} items`} />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Search + Add */}
         <div className="flex gap-2">
           <div className="flex-1 relative">

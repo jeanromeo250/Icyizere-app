@@ -41,10 +41,10 @@ export default function Expenses() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Expenses" subtitle="Track business expenses" />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-3">
           <StatCard

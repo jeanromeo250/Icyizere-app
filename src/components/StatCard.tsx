@@ -49,7 +49,7 @@ export default function StatCard({ title, value, icon: Icon, trend, variant = "d
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className="text-2xl font-display font-bold text-foreground">{value}</p>
+      <p className="break-words text-xl font-display font-bold text-foreground sm:text-2xl">{value}</p>
       {trend && <p className="text-xs text-muted-foreground">{trend}</p>}
     </div>
   );

@@ -204,10 +204,10 @@ export default function Reports() {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Reports" subtitle={`${periodLabel[period]} Summary`} />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Period Selector */}
         <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <SelectTrigger className="w-full">
@@ -232,7 +232,7 @@ export default function Reports() {
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard title="Total Sales" value={`RWF ${totalSales.toLocaleString()}`} icon={DollarSign} variant="success" trend={`${filtered.sales.length} transactions`} />
               <StatCard title="Total Expenses" value={`RWF ${totalExpenses.toLocaleString()}`} icon={TrendingDown} variant="destructive" trend={`${filtered.expenses.length} entries`} />
               <StatCard title="Net Profit" value={`RWF ${netProfit.toLocaleString()}`} icon={TrendingUp} variant={netProfit >= 0 ? "success" : "destructive"} />

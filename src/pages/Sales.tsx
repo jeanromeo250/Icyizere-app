@@ -190,10 +190,10 @@ export default function Sales() {
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 lg:pb-8">
       <PageHeader title="Sales" subtitle="Record and monitor sales" />
 
-      <div className="px-4 space-y-4 mt-2">
+      <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-3 gap-3">
           <StatCard
             title="Total Sales"
