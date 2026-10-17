@@ -18,9 +18,9 @@ export default function Products() {
 
   const isAddingNew = dialogOpen && !editing;
 
-  const canAdd = role === "manager" || (permissions && permissions.can_add_product);
+  const canAdd = role === "manager";
   const canEdit = role === "manager" || (permissions && permissions.can_edit_product);
-  const canDelete = role === "manager" || (permissions && permissions.can_delete_product);
+  const canDelete = role === "manager";
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -32,14 +32,22 @@ export default function Products() {
     const data = {
       name: fd.get("name") as string,
       price: parseFloat(fd.get("price") as string),
-      stock: parseFloat(fd.get("stock") as string),
+      stock: role === "employee" && editing
+        ? editing.stock
+        : parseFloat(fd.get("stock") as string),
       category: fd.get("category") as string,
       minStock: parseFloat(fd.get("minStock") as string),
     };
 
     if (editing) {
-      updateProduct(editing.id, data);
+      if (role === "employee") {
+        const { stock: _stock, ...productDetails } = data;
+        updateProduct(editing.id, productDetails);
+      } else {
+        updateProduct(editing.id, data);
+      }
     } else {
+      if (role !== "manager") return;
       addProduct(data);
     }
     setEditing(null);
@@ -63,13 +71,15 @@ export default function Products() {
               disabled={isAddingNew}
             />
           </div>
-          {canAdd && (
+          {(canAdd || canEdit) && (
             <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
-              <DialogTrigger asChild>
-                <Button size="icon" className="shrink-0 bg-primary text-primary-foreground">
+              {canAdd && (
+                <DialogTrigger asChild>
+                  <Button size="icon" className="shrink-0 bg-primary text-primary-foreground">
                   <Plus className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
+                  </Button>
+                </DialogTrigger>
+              )}
               <DialogContent className="max-w-[90vw] rounded-2xl">
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit Product" : "Add Product"}</DialogTitle>
@@ -78,7 +88,9 @@ export default function Products() {
                   <div><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.price} required /></div>
-                    <div><Label>Stock</Label><Input name="stock" type="number" min="0" step="any" defaultValue={editing?.stock} required /></div>
+                    {role !== "employee" && (
+                      <div><Label>Stock</Label><Input name="stock" type="number" min="0" step="any" defaultValue={editing?.stock} required /></div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>

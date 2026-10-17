@@ -15,9 +15,9 @@ import { summarizeCustomerCredits } from "@/lib/credit";
 import { toast } from "@/hooks/use-toast";
 
 export default function Sales() {
-  const { profile } = useAuth();
-  const { products, updateProduct } = useProducts();
-  const { sales, addSale } = useSales();
+  const { profile, role } = useAuth();
+  const { products, updateProduct, setProducts } = useProducts();
+  const { sales, addSale, addEmployeeSale } = useSales();
   const { credits, addCustomerCredit, updateCustomerCredit, recordPayment, paymentsByCredit, fetchCreditPayments } = useCustomerCredits();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -119,7 +119,7 @@ export default function Sales() {
     });
   }, [completedLoans, loanSearch]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
 
@@ -132,16 +132,34 @@ export default function Sales() {
       return;
     }
 
-    addSale({
+    const sale = {
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       quantity: saleQuantity,
       total,
       date: new Date().toISOString().split("T")[0],
       employeeName: profile?.full_name || "Manager",
-    });
+    };
 
-    updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - saleQuantity) });
+    if (role === "employee") {
+      const recorded = await addEmployeeSale(sale);
+      if (!recorded) {
+        toast({
+          title: "Sale not recorded",
+          description: "The employee stock may have changed. Refresh and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setProducts((current) => current.map((product) =>
+        product.id === selectedProduct.id
+          ? { ...product, stock: Math.max(0, product.stock - saleQuantity) }
+          : product
+      ));
+    } else {
+      addSale(sale);
+      updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - saleQuantity) });
+    }
     setDialogOpen(false);
     setSelectedProduct(null);
     setQuantity("1");

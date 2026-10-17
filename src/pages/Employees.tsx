@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { UserPlus, Users, Shield, Eye, ChevronRight, Trash2, Search, TrendingUp, Activity } from "lucide-react";
+import { UserPlus, Users, Shield, Eye, ChevronRight, Trash2, Search, TrendingUp, Activity, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useProducts } from "@/lib/store";
 
 interface EmployeeWithProfile {
   employee_user_id: string;
@@ -25,6 +27,7 @@ interface EmployeeWithProfile {
   can_edit_product: boolean;
   can_delete_product: boolean;
   can_add_expenses: boolean;
+  stockAllocations?: { product_id: string; quantity: number }[];
 }
 
 const PERMISSION_LABELS: Record<string, string> = {
@@ -44,7 +47,7 @@ const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   can_view_stock: "View stock levels and entries",
   can_add_product: "Add new products",
   can_add_stock: "Add stock entries",
-  can_remove_stock: "Remove stock entries",
+  can_remove_stock: "Record stock-out from the employee's assigned balance",
   can_view_sales: "View sales history",
   can_edit_product: "Edit product details",
   can_delete_product: "Remove products from inventory",
@@ -91,6 +94,7 @@ const uiToDbPermissions = (perms: Partial<typeof FULL_ACCESS_PERMISSIONS>) => ({
 
 export default function Employees() {
   const { user, role } = useAuth();
+  const { products, setProducts } = useProducts();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<EmployeeWithProfile[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -100,6 +104,11 @@ export default function Employees() {
   const [perms, setPerms] = useState({ ...FULL_ACCESS_PERMISSIONS });
   const [searchQuery, setSearchQuery] = useState("");
   const [employeePerformance, setEmployeePerformance] = useState<Record<string, any>>({});
+  const [stockEmployeeId, setStockEmployeeId] = useState<string | null>(null);
+  const [stockProductId, setStockProductId] = useState("");
+  const [stockAction, setStockAction] = useState<"assign" | "return" | "transfer">("assign");
+  const [stockTargetEmployeeId, setStockTargetEmployeeId] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("");
 
   useEffect(() => {
     if (role !== "manager") return;
@@ -119,10 +128,16 @@ export default function Employees() {
     }
 
     const empIds = empPerms.map((e) => e.employee_user_id);
-    const { data: profiles } = await (supabase
-      .from("profiles" as any) as any)
-      .select("*")
-      .in("user_id", empIds);
+    const [{ data: profiles }, { data: allocations, error: allocationError }] = await Promise.all([
+      (supabase.from("profiles" as any) as any).select("*").in("user_id", empIds),
+      (supabase.from("employee_stock_allocations" as any) as any)
+        .select("employee_user_id, product_id, quantity")
+        .eq("manager_user_id", user.id),
+    ]);
+
+    if (allocationError) {
+      toast.error(`Failed to load employee stock: ${allocationError.message}`);
+    }
 
     const result: EmployeeWithProfile[] = empPerms.map((ep) => {
       const prof = profiles?.find((p) => p.user_id === ep.employee_user_id);
@@ -131,6 +146,12 @@ export default function Employees() {
         full_name: prof?.full_name || "Unknown Employee",
         employee_name: prof?.full_name || "Unknown Employee",
         email: prof?.phone || "",
+        stockAllocations: (allocations ?? [])
+          .filter((allocation: any) => allocation.employee_user_id === ep.employee_user_id)
+          .map((allocation: any) => ({
+            product_id: allocation.product_id,
+            quantity: Number(allocation.quantity),
+          })),
         ...dbToUiPermissions(ep),
       };
     });
@@ -138,6 +159,62 @@ export default function Employees() {
     setEmployees(result);
     // Fetch performance data for all employees
     fetchEmployeePerformance(result);
+  };
+
+  const handleManageStock = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!stockEmployeeId) return;
+    const quantity = Number(stockQuantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error("Enter a quantity greater than zero.");
+      return;
+    }
+    const product = products.find((item) => item.id === stockProductId);
+    const employeeAllocation = employees
+      .find((employee) => employee.employee_user_id === stockEmployeeId)
+      ?.stockAllocations?.find((allocation) => allocation.product_id === stockProductId);
+    const available = stockAction === "assign"
+      ? product?.stock ?? 0
+      : employeeAllocation?.quantity ?? 0;
+    if (!product || quantity > available) {
+      toast.error(
+        stockAction === "assign"
+          ? `Only ${available} ${product?.name ?? "units"} remain in manager stock.`
+          : `Only ${available} units are assigned to this employee.`,
+      );
+      return;
+    }
+
+    const { error } = await (supabase.rpc as any)("manage_employee_stock", {
+      p_employee_user_id: stockEmployeeId,
+      p_product_id: stockProductId,
+      p_quantity: quantity,
+      p_action: stockAction,
+      p_target_employee_user_id: stockAction === "transfer" ? stockTargetEmployeeId : null,
+    });
+
+    if (error) {
+      toast.error(`Failed to update employee stock: ${error.message}`);
+      return;
+    }
+
+    toast.success(
+      stockAction === "assign"
+        ? "Stock assigned to employee."
+        : stockAction === "return"
+          ? "Stock returned to manager inventory."
+          : "Stock transferred to employee."
+    );
+    if (stockAction === "assign" || stockAction === "return") {
+      const managerStockChange = stockAction === "assign" ? -quantity : quantity;
+      setProducts((current) => current.map((item) =>
+        item.id === stockProductId
+          ? { ...item, stock: item.stock + managerStockChange }
+          : item
+      ));
+    }
+    setStockQuantity("");
+    await fetchEmployees();
   };
 
   const fetchEmployeePerformance = async (employeeList: EmployeeWithProfile[]) => {
@@ -457,6 +534,20 @@ export default function Employees() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => {
+                            setStockEmployeeId(stockEmployeeId === emp.employee_user_id ? null : emp.employee_user_id);
+                            setStockProductId(products[0]?.id ?? "");
+                            setStockAction("assign");
+                            setStockTargetEmployeeId("");
+                            setStockQuantity("");
+                          }}
+                          title="Manage Employee Stock"
+                        >
+                          <Package className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setPermOpen(permOpen === emp.employee_user_id ? null : emp.employee_user_id)}
                           title="Edit Permissions"
                         >
@@ -473,6 +564,80 @@ export default function Employees() {
                         </Button>
                       </div>
                     </div>
+
+                    {stockEmployeeId === emp.employee_user_id && (
+                      <div className="mb-3 space-y-3 rounded-lg border border-border bg-secondary/30 p-3">
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground">Employee stock</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Giving stock reduces the manager balance. Sales and stock out reduce only this employee's quantity.
+                          </p>
+                        </div>
+                        {emp.stockAllocations?.some((allocation) => allocation.quantity > 0) ? (
+                          <div className="space-y-1">
+                            {emp.stockAllocations.filter((allocation) => allocation.quantity > 0).map((allocation) => (
+                              <div key={allocation.product_id} className="flex justify-between text-sm">
+                                <span className="text-foreground">
+                                  {products.find((product) => product.id === allocation.product_id)?.name ?? "Product"}
+                                </span>
+                                <span className="font-medium text-foreground">{allocation.quantity}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No stock assigned yet.</p>
+                        )}
+                        <form onSubmit={handleManageStock} className="space-y-2 border-t border-border pt-3">
+                          <Select value={stockAction} onValueChange={(value: "assign" | "return" | "transfer") => setStockAction(value)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="assign">Give stock</SelectItem>
+                              <SelectItem value="return">Return to manager</SelectItem>
+                              <SelectItem value="transfer">Transfer to employee</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={stockProductId} onValueChange={setStockProductId}>
+                            <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                            <SelectContent>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} · Manager stock: {product.stock}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {stockAction === "transfer" && (
+                            <Select value={stockTargetEmployeeId} onValueChange={setStockTargetEmployeeId}>
+                              <SelectTrigger><SelectValue placeholder="Transfer to employee" /></SelectTrigger>
+                              <SelectContent>
+                                {employees.filter((employee) => employee.employee_user_id !== emp.employee_user_id).map((employee) => (
+                                  <SelectItem key={employee.employee_user_id} value={employee.employee_user_id}>
+                                    {employee.employee_name || employee.full_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              max={stockAction === "assign"
+                                ? products.find((product) => product.id === stockProductId)?.stock
+                                : emp.stockAllocations?.find((allocation) => allocation.product_id === stockProductId)?.quantity}
+                              value={stockQuantity}
+                              onChange={(event) => setStockQuantity(event.target.value)}
+                              placeholder="Quantity"
+                              required
+                            />
+                            <Button type="submit" disabled={!stockProductId || (stockAction === "transfer" && !stockTargetEmployeeId)}>
+                              {stockAction === "assign" ? "Give" : stockAction === "return" ? "Return" : "Transfer"}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
 
                     {/* Performance Summary */}
                     <div className="grid grid-cols-3 gap-2 mb-2 text-xs">

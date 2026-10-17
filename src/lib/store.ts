@@ -84,6 +84,23 @@ async function getUserFullName(): Promise<string | null> {
   return data?.full_name ?? null;
 }
 
+export async function consumeEmployeeStock(
+  productId: string,
+  quantity: number,
+  kind: "sale" | "out",
+  note?: string,
+) {
+  return db.rpc("consume_employee_stock", {
+    p_product_id: productId,
+    p_quantity: quantity,
+    p_kind: kind,
+    p_total: 0,
+    p_date: new Date().toISOString().split("T")[0],
+    p_employee_name: await getUserFullName(),
+    p_note: note ?? null,
+  });
+}
+
 // ---------- useProducts ----------
 
 export function useProducts() {
@@ -97,20 +114,59 @@ export function useProducts() {
       setLoading(false);
       return;
     }
-    const { data } = await db
+    const { data: employeeLink, error: employeeLinkError } = await db
+      .from("employee_permissions")
+      .select("manager_user_id")
+      .eq("employee_user_id", userId)
+      .maybeSingle();
+    if (employeeLinkError) {
+      console.error("Failed to determine employee stock owner:", employeeLinkError);
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+    const ownerId = employeeLink?.manager_user_id ?? userId;
+    const { data, error } = await db
       .from("products")
       .select("*")
+      .eq("user_id", ownerId)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Failed to fetch products:", error);
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     if (data) {
+      let employeeStock: Record<string, number> = {};
+      if (employeeLink) {
+        const { data: allocations, error } = await db
+          .from("employee_stock_allocations")
+          .select("product_id, quantity")
+          .eq("employee_user_id", userId);
+        if (error) {
+          console.error("Failed to fetch employee stock:", error);
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+        employeeStock = Object.fromEntries(
+          (allocations ?? [])
+            .filter((allocation: any) => Number(allocation.quantity) > 0)
+            .map((allocation: any) => [allocation.product_id, Number(allocation.quantity)])
+        );
+      }
       setProducts(
-        data.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          price: Number(r.price),
-          stock: Number(r.stock),
-          category: r.category ?? "General",
-          minStock: Number(r.min_stock ?? 10),
-        }))
+        data
+          .filter((r: any) => !employeeLink || employeeStock[r.id] !== undefined)
+          .map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            price: Number(r.price),
+            stock: employeeLink ? employeeStock[r.id] : Number(r.stock),
+            category: r.category ?? "General",
+            minStock: Number(r.min_stock ?? 10),
+          }))
       );
     }
     setLoading(false);
@@ -259,7 +315,28 @@ export function useSales() {
     }
   };
 
-  return { sales, addSale, loading };
+  const addEmployeeSale = async (s: Omit<Sale, "id">) => {
+    const userId = await getUserId();
+    if (!userId) return false;
+    const fullName = s.employeeName || (await getUserFullName()) || "Unknown";
+    const { data: saleId, error } = await db.rpc("consume_employee_stock", {
+      p_product_id: s.productId,
+      p_quantity: s.quantity,
+      p_kind: "sale",
+      p_total: s.total,
+      p_date: s.date,
+      p_employee_name: fullName,
+      p_note: null,
+    });
+    if (error || !saleId) {
+      console.error("Failed to record employee sale:", error);
+      return false;
+    }
+    setSales((prev) => [{ ...s, id: saleId, employeeName: fullName }, ...prev]);
+    return true;
+  };
+
+  return { sales, addSale, addEmployeeSale, loading };
 }
 
 // ---------- useCustomerCredits ----------

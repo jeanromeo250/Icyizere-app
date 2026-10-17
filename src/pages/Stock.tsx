@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
-import { useProducts, useStockEntries } from "@/lib/store";
+import { consumeEmployeeStock, useProducts, useStockEntries } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,14 +24,9 @@ interface InvoiceItem {
 }
 
 export default function Stock() {
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
 
-  
-  if (permissions && !permissions.can_add_stock && !permissions.can_remove_stock) {
-    return <Navigate to="/" replace />;
-  }
-
-  const { products, updateProduct } = useProducts();
+  const { products, updateProduct, setProducts } = useProducts();
   const { entries, addEntry } = useStockEntries();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockType, setStockType] = useState<"in" | "out">("in");
@@ -42,7 +37,16 @@ export default function Stock() {
   const [invoiceMeta, setInvoiceMeta] = useState<{ invoiceTotal?: number; supplier?: string; invoiceDate?: string }>({});
   const [invoiceStep, setInvoiceStep] = useState<"upload" | "review">("upload");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  if (
+    role === "employee"
+    && !permissions?.can_view_stock
+    && !permissions?.can_add_stock
+    && !permissions?.can_remove_stock
+  ) {
+    return <Navigate to="/" replace />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const productId = fd.get("product") as string;
@@ -50,6 +54,24 @@ export default function Stock() {
     const note = fd.get("note") as string;
     const product = products.find(p => p.id === productId);
     if (!product) return;
+
+    if (role === "employee" && stockType === "in") {
+      toast({
+        title: "Manager assignment required",
+        description: "Ask your manager to assign stock to your employee account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (role === "employee" && !permissions?.can_remove_stock) {
+      toast({
+        title: "Stock-out permission required",
+        description: "Ask your manager to enable the Stock OUT permission for your account.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       toast({
@@ -70,18 +92,33 @@ export default function Stock() {
       return;
     }
 
-    addEntry({
-      productId,
-      productName: product.name,
-      type: stockType,
-      quantity,
-      date: new Date().toISOString().split("T")[0],
-      note,
-    });
+    if (role === "employee") {
+      const { error } = await consumeEmployeeStock(productId, quantity, "out", note);
+      if (error) {
+        toast({
+          title: "Stock not updated",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setProducts((current) => current.map((item) =>
+        item.id === productId ? { ...item, stock: Math.max(0, item.stock - quantity) } : item
+      ));
+    } else {
+      addEntry({
+        productId,
+        productName: product.name,
+        type: stockType,
+        quantity,
+        date: new Date().toISOString().split("T")[0],
+        note,
+      });
 
-    updateProduct(productId, {
-      stock: stockType === "in" ? product.stock + quantity : Math.max(0, product.stock - quantity),
-    });
+      updateProduct(productId, {
+        stock: stockType === "in" ? product.stock + quantity : Math.max(0, product.stock - quantity),
+      });
+    }
 
     setDialogOpen(false);
   };
@@ -194,7 +231,8 @@ export default function Stock() {
 
       <div className="mx-auto mt-2 max-w-screen-xl space-y-4 px-4 sm:px-6 lg:px-8">
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={cn("grid gap-3", role === "employee" ? "grid-cols-1" : "grid-cols-2")}>
+          {role !== "employee" && (
           <Dialog open={dialogOpen && stockType === "in"} onOpenChange={(o) => { setDialogOpen(o); setStockType("in"); }}>
             <DialogTrigger asChild>
               <button className="flex items-center gap-3 p-4 rounded-xl border border-success/30 bg-success/5 text-left">
@@ -212,7 +250,9 @@ export default function Stock() {
               <StockForm products={products} onSubmit={handleSubmit} stockType="in" />
             </DialogContent>
           </Dialog>
+          )}
 
+          {(role !== "employee" || permissions?.can_remove_stock) && (
           <Dialog open={dialogOpen && stockType === "out"} onOpenChange={(o) => { setDialogOpen(o); setStockType("out"); if (!o) setSelectedProduct(""); }}>
             <DialogTrigger asChild>
               <button className="flex items-center gap-3 p-4 rounded-xl border border-warning/30 bg-warning/5 text-left">
@@ -236,10 +276,16 @@ export default function Stock() {
               />
             </DialogContent>
           </Dialog>
+          )}
         </div>
+        {role === "employee" && !permissions?.can_remove_stock && (
+          <p className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+            Stock-out is disabled. Ask your manager to enable the <span className="font-medium text-foreground">Stock OUT</span> permission in your employee settings.
+          </p>
+        )}
 
         {/* Invoice Upload Button */}
-        <Dialog open={invoiceDialogOpen} onOpenChange={(o) => { setInvoiceDialogOpen(o); if (!o) { setInvoiceStep("upload"); setInvoiceItems([]); } }}>
+        {role !== "employee" && <Dialog open={invoiceDialogOpen} onOpenChange={(o) => { setInvoiceDialogOpen(o); if (!o) { setInvoiceStep("upload"); setInvoiceItems([]); } }}>
           <DialogTrigger asChild>
             <button className="flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 text-left w-full">
               <div className="p-2 rounded-lg bg-primary/20">
@@ -361,7 +407,7 @@ export default function Stock() {
               </div>
             )}
           </DialogContent>
-        </Dialog>
+        </Dialog>}
 
         {/* All Products Current Stock Table */}
         <div className="rounded-xl border border-border bg-card p-4 overflow-x-auto">
