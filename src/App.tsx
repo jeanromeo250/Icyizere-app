@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
+import NetworkStatus from "@/components/NetworkStatus";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
@@ -34,6 +36,8 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <div className="max-w-lg mx-auto min-h-screen bg-background">
+              <NetworkStatus />
+              <PwaInstallPrompt />
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
