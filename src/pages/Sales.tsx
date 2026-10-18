@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { useProducts, useSales, useCustomerCredits } from "@/lib/store";
+import type { PaymentMethod } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
 import { summarizeCustomerCredits } from "@/lib/credit";
 import { toast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ export default function Sales() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState("1");
   const [pricePerUnit, setPricePerUnit] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [loanProductName, setLoanProductName] = useState("");
@@ -139,6 +141,7 @@ export default function Sales() {
       total,
       date: new Date().toISOString().split("T")[0],
       employeeName: profile?.full_name || "Manager",
+      paymentMethod,
     };
 
     if (role === "employee") {
@@ -157,13 +160,22 @@ export default function Sales() {
           : product
       ));
     } else {
-      addSale(sale);
+      const recorded = await addSale(sale);
+      if (!recorded) {
+        toast({
+          title: "Sale not recorded",
+          description: "Please check your connection and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       updateProduct(selectedProduct.id, { stock: Math.max(0, selectedProduct.stock - saleQuantity) });
     }
     setDialogOpen(false);
     setSelectedProduct(null);
     setQuantity("1");
     setPricePerUnit(0);
+    setPaymentMethod("cash");
   };
 
   const handleLoanSubmit = (e: React.FormEvent) => {
@@ -302,6 +314,21 @@ export default function Sales() {
                     <Label>Price per Unit (RWF)</Label>
                     <Input type="number" step="0.01" min="0" value={pricePerUnit} onChange={e => setPricePerUnit(parseFloat(e.target.value) || 0)} />
                   </div>
+                </div>
+                <div>
+                  <Label htmlFor="sale-payment-method">Payment method</Label>
+                  <select
+                    id="sale-payment-method"
+                    value={paymentMethod}
+                    onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
+                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="mobile_money">Mobile Money (MoMo)</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
                 {selectedProduct && (
                   <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-sm">
@@ -627,6 +654,11 @@ export default function Sales() {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">Qty: {sale.quantity} · {sale.employeeName} · {sale.date}</p>
+                    <p className="text-[10px] capitalize text-muted-foreground">
+                      Paid by: {sale.paymentMethod && sale.paymentMethod !== "unspecified"
+                        ? sale.paymentMethod.replace("_", " ")
+                        : "Not recorded"}
+                    </p>
                     {sale.customerName && <p className="text-[10px] text-muted-foreground">Customer: {sale.customerName}</p>}
                   </div>
                   <span className="font-semibold text-success text-sm">RWF {sale.total.toLocaleString()}</span>

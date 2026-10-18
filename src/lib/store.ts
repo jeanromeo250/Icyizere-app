@@ -27,7 +27,10 @@ export interface Sale {
   employeeName: string;
   source?: "sale" | "loan_payment";
   customerName?: string;
+  paymentMethod?: PaymentMethod;
 }
+
+export type PaymentMethod = "cash" | "mobile_money" | "bank_transfer" | "card" | "other" | "unspecified";
 
 export interface Expense {
   id: string;
@@ -270,6 +273,7 @@ export function useSales() {
           employeeName: r.employee_name ?? "Unknown",
           source: (r.source as "sale" | "loan_payment") ?? "sale",
           customerName: r.customer_name ?? undefined,
+          paymentMethod: (r.payment_method as PaymentMethod) ?? "unspecified",
         }))
       );
     }
@@ -282,7 +286,7 @@ export function useSales() {
 
   const addSale = async (s: Omit<Sale, "id">) => {
     const userId = await getUserId();
-    if (!userId) return;
+    if (!userId) return false;
     const fullName = s.employeeName || (await getUserFullName()) || "Unknown";
     const source = s.source ?? "sale";
     const { data, error } = await db
@@ -296,6 +300,7 @@ export function useSales() {
         employee_name: fullName,
         source,
         customer_name: s.customerName ?? null,
+        payment_method: s.paymentMethod ?? "cash",
         user_id: userId,
       })
       .select()
@@ -312,10 +317,16 @@ export function useSales() {
           employeeName: data.employee_name ?? fullName,
           source: (data.source as "sale" | "loan_payment") ?? source,
           customerName: data.customer_name ?? s.customerName,
+          paymentMethod: (data.payment_method as PaymentMethod) ?? s.paymentMethod ?? "unspecified",
         },
         ...prev,
       ]);
     }
+    if (error || !data) {
+      console.error("Failed to record sale:", error);
+      return false;
+    }
+    return true;
   };
 
   const addEmployeeSale = async (s: Omit<Sale, "id">) => {
@@ -330,6 +341,7 @@ export function useSales() {
       p_date: s.date,
       p_employee_name: fullName,
       p_note: null,
+      p_payment_method: s.paymentMethod ?? "cash",
     });
     if (error || !saleId) {
       console.error("Failed to record employee sale:", error);

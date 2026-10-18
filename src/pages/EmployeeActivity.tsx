@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -21,6 +21,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 type Period = "today" | "week" | "month" | "year" | "all";
+type ActivityFilter = "all" | "sales" | "stock_in" | "stock_out" | "other";
 
 interface ActivityEntry {
   id: string;
@@ -30,7 +31,17 @@ interface ActivityEntry {
 }
 
 interface EmployeeProfile {
+  user_id?: string;
   full_name: string | null;
+}
+
+interface EmployeeOption {
+  id: string;
+  name: string;
+}
+
+interface EmployeePermissionRow {
+  employee_user_id: string;
 }
 
 interface ProductRow {
@@ -81,6 +92,7 @@ interface QueryResult<T> {
 interface EmployeeQuery<T> extends PromiseLike<QueryResult<T[]>> {
   eq(column: string, value: string): EmployeeQuery<T>;
   gte(column: string, value: string): EmployeeQuery<T>;
+  in(column: string, values: string[]): EmployeeQuery<T>;
   order(column: string, options?: { ascending: boolean }): EmployeeQuery<T>;
   limit(count: number): EmployeeQuery<T>;
   maybeSingle(): Promise<QueryResult<T>>;
@@ -107,6 +119,18 @@ interface StockMovement {
   date: string;
   note: string;
   total?: number;
+}
+
+interface ActivityTimelineEntry {
+  id: string;
+  action: string;
+  created_at: string;
+  details: Json | null;
+  productName?: string;
+  quantity?: number;
+  total?: number;
+  note?: string;
+  source: "audit" | "sale" | "stock";
 }
 
 const ACTION_ICONS: Record<string, typeof Activity> = {
@@ -137,11 +161,26 @@ const PERIOD_LABELS: Record<Period, string> = {
   all: "All Time",
 };
 
+const ACTIVITY_FILTER_LABELS: Record<ActivityFilter, string> = {
+  all: "All activity",
+  sales: "Sales",
+  stock_in: "Stock received",
+  stock_out: "Stock removed",
+  other: "Other activity",
+};
+
 function selectFrom<T>(table: string, columns: string): EmployeeQuery<T> {
   const relation = supabase.from(table as never) as unknown as {
     select: (selectedColumns: string) => EmployeeQuery<T>;
   };
   return relation.select(columns);
+}
+
+function formatDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getPeriodStart(period: Period): Date | null {
@@ -151,7 +190,7 @@ function getPeriodStart(period: Period): Date | null {
       return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     case "week": {
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      start.setDate(start.getDate() - 6);
+      start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
       return start;
     }
     case "month":
@@ -186,8 +225,11 @@ export default function EmployeeActivity() {
   const navigate = useNavigate();
   const { role, user } = useAuth();
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [employeeName, setEmployeeName] = useState("");
-  const [period, setPeriod] = useState<Period>("today");
+  const [period, setPeriod] = useState<Period>("all");
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [selectedProduct, setSelectedProduct] = useState("all");
   const [products, setProducts] = useState<EmployeeProductStock[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [salesCount, setSalesCount] = useState(0);
@@ -197,13 +239,62 @@ export default function EmployeeActivity() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (role !== "manager" || !user) return;
+
+    let cancelled = false;
+    const fetchEmployees = async () => {
+      const { data: permissionRows, error: permissionError } =
+        await selectFrom<EmployeePermissionRow>("employee_permissions", "employee_user_id")
+          .eq("manager_user_id", user.id);
+      if (cancelled) return;
+      if (permissionError) {
+        toast.error(`Failed to load employee selection: ${permissionError.message}`);
+        setEmployees([]);
+        return;
+      }
+
+      const employeeIds = [...new Set((permissionRows || []).map((row) => row.employee_user_id))];
+      if (employeeIds.length === 0) {
+        setEmployees([]);
+        return;
+      }
+
+      const { data: profiles, error: profileError } = await selectFrom<EmployeeProfile>(
+        "profiles",
+        "user_id, full_name",
+      ).in("user_id", employeeIds);
+      if (cancelled) return;
+      if (profileError) {
+        toast.error(`Failed to load employee names: ${profileError.message}`);
+        setEmployees(employeeIds.map((id) => ({ id, name: id })));
+        return;
+      }
+
+      setEmployees(employeeIds.map((id) => ({
+        id,
+        name: profiles?.find((profile) => profile.user_id === id)?.full_name || "Employee",
+      })));
+    };
+
+    void fetchEmployees();
+    return () => {
+      cancelled = true;
+    };
+  }, [role, user]);
+
+  useEffect(() => {
+    setActivityFilter("all");
+    setSelectedProduct("all");
+  }, [employeeId]);
+
+  useEffect(() => {
     if (!employeeId || role !== "manager" || !user) return;
 
     let cancelled = false;
     const fetchEmployeeData = async () => {
       setLoading(true);
       const start = getPeriodStart(period);
-      const startDate = start?.toISOString().slice(0, 10);
+      const startDate = start ? formatDateOnly(start) : undefined;
 
       const profileQuery = selectFrom<EmployeeProfile>("profiles", "full_name")
         .eq("user_id", employeeId)
@@ -242,6 +333,9 @@ export default function EmployeeActivity() {
         await Promise.all([profileQuery, productQuery, allocationQuery, salesQuery, stockQuery, activityQuery]);
 
       if (cancelled) return;
+      if (activityResult.error) {
+        toast.error(`Failed to load audit activity: ${activityResult.error.message}`);
+      }
 
       const queryErrors = [
         profileResult.error,
@@ -249,7 +343,6 @@ export default function EmployeeActivity() {
         allocationResult.error,
         salesResult.error,
         stockResult.error,
-        activityResult.error,
       ].filter((error): error is QueryError => error !== null);
 
       if (queryErrors.length) {
@@ -269,12 +362,16 @@ export default function EmployeeActivity() {
       const fullName = profileResult.data?.full_name || "Employee";
       let sales: SaleRow[] = salesResult.data || [];
       if (sales.length === 0 && fullName !== "Employee") {
-        const { data: fallbackSales, error } = await selectFrom<SaleRow>(
+        let fallbackSalesQuery = selectFrom<SaleRow>(
           "sales",
           "id, product_id, product_name, quantity, total, date, created_at, employee_name",
         )
-          .eq("employee_name", fullName)
-          .gte("date", startDate || "0000-01-01");
+          .eq("user_id", user.id)
+          .eq("employee_name", fullName);
+        if (startDate) {
+          fallbackSalesQuery = fallbackSalesQuery.gte("date", startDate);
+        }
+        const { data: fallbackSales, error } = await fallbackSalesQuery;
         if (cancelled) return;
         if (error) {
           toast.error(`Failed to load employee sales: ${error.message}`);
@@ -376,6 +473,42 @@ export default function EmployeeActivity() {
     };
   }, [employeeId, period, role, user]);
 
+  const activityTimeline = useMemo<ActivityTimelineEntry[]>(() => [
+    ...activities.map((activity) => ({
+      ...activity,
+      source: "audit" as const,
+    })),
+    ...movements.map((movement) => ({
+      id: movement.id,
+      action: movement.type === "sale" ? "record_sale" : movement.type === "in" ? "stock_in" : "stock_out",
+      created_at: movement.date,
+      details: null,
+      productName: movement.productName,
+      quantity: movement.quantity,
+      total: movement.total,
+      note: movement.note,
+      source: movement.type === "sale" ? "sale" as const : "stock" as const,
+    })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()), [activities, movements]);
+
+  const filteredActivity = useMemo(() => activityTimeline.filter((entry) => {
+    const isSelectedType = activityFilter === "all"
+      || (activityFilter === "sales" && entry.action === "record_sale")
+      || (activityFilter === "stock_in" && entry.action === "stock_in")
+      || (activityFilter === "stock_out" && entry.action === "stock_out")
+      || (activityFilter === "other" && !["record_sale", "stock_in", "stock_out"].includes(entry.action));
+    if (!isSelectedType) return false;
+    if (selectedProduct === "all") return true;
+
+    const details = getDetails(entry.details);
+    const productName = entry.productName || getDetailText(details.productName);
+    return productName === selectedProduct;
+  }), [activityTimeline, activityFilter, selectedProduct]);
+
+  const activityProducts = useMemo(() => [...new Set(activityTimeline
+    .map((entry) => entry.productName || getDetailText(getDetails(entry.details).productName))
+    .filter((name): name is string => Boolean(name)))].sort((a, b) => a.localeCompare(b)), [activityTimeline]);
+
   if (role !== "manager") {
     return (
       <div className="mx-auto max-w-screen-xl px-4 pb-24 pt-8 text-center sm:px-6 lg:px-8 lg:pb-8">
@@ -403,18 +536,36 @@ export default function EmployeeActivity() {
             <h2 className="font-semibold text-foreground">Performance summary</h2>
             <p className="text-sm text-muted-foreground">{PERIOD_LABELS[period]}</p>
           </div>
-          <Select value={period} onValueChange={(value: Period) => setPeriod(value)}>
-            <SelectTrigger className="w-full sm:w-48" aria-label="Activity period">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Select
+              value={employeeId}
+              onValueChange={(nextEmployeeId) => navigate(`/employees/${nextEmployeeId}/activity`)}
+            >
+              <SelectTrigger className="w-full sm:w-56" aria-label="Select employee">
+                <SelectValue placeholder={employeeName || "Select employee"} />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>
+                ))}
+                {employeeId && !employees.some((employee) => employee.id === employeeId) && (
+                  <SelectItem value={employeeId}>{employeeName || "Selected employee"}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <Select value={period} onValueChange={(value: Period) => setPeriod(value)}>
+              <SelectTrigger className="w-full sm:w-48" aria-label="Filter by period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -579,24 +730,76 @@ export default function EmployeeActivity() {
         </section>
 
         <section className="rounded-xl border border-border bg-card p-4">
-          <h3 className="mb-3 flex items-center gap-2 font-semibold text-foreground">
-            <Activity className="h-4 w-4 text-primary" />
-            Activity log
-            <span className="ml-auto text-xs font-normal text-muted-foreground">{activities.length}</span>
-          </h3>
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                <Activity className="h-4 w-4 text-primary" />
+                Employee activity
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sales and stock actions are included alongside audit log events.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Select value={activityFilter} onValueChange={(value: ActivityFilter) => setActivityFilter(value)}>
+                <SelectTrigger className="w-full sm:w-44" aria-label="Filter activity type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ACTIVITY_FILTER_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger className="w-full sm:w-52" aria-label="Filter activity by product">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All products</SelectItem>
+                  {activityProducts.map((productName) => (
+                    <SelectItem key={productName} value={productName}>{productName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Showing {filteredActivity.length} of {activityTimeline.length} events · {PERIOD_LABELS[period]}
+          </p>
           {loading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Loading activity…</p>
-          ) : activities.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No activity for this period.</p>
+          ) : activityTimeline.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No activity recorded for {PERIOD_LABELS[period].toLowerCase()}.
+            </p>
+          ) : filteredActivity.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-muted-foreground">No events match these filters.</p>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  setActivityFilter("all");
+                  setSelectedProduct("all");
+                }}
+              >
+                Clear activity filters
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
-              {activities.map((activity) => {
+              {filteredActivity.map((activity) => {
                 const Icon = ACTION_ICONS[activity.action] || Activity;
                 const color = ACTION_COLORS[activity.action] || "bg-muted text-muted-foreground";
                 const details = getDetails(activity.details);
-                const productName = getDetailText(details.productName);
-                const total = getDetailText(details.total);
-                const quantity = getDetailText(details.quantity);
+                const productName = activity.productName || getDetailText(details.productName);
+                const total = activity.total !== undefined
+                  ? String(activity.total)
+                  : getDetailText(details.total);
+                const quantity = activity.quantity !== undefined
+                  ? String(activity.quantity)
+                  : getDetailText(details.quantity);
 
                 return (
                   <div key={activity.id} className="flex items-start gap-3 text-sm">
@@ -607,6 +810,10 @@ export default function EmployeeActivity() {
                       <p className="font-medium capitalize text-foreground">{activity.action.replace(/_/g, " ")}</p>
                       {productName && <p className="text-xs text-muted-foreground">{productName}</p>}
                       {total && <p className="text-xs font-medium text-success">{formatRwf(Number(total))}</p>}
+                      {activity.note && <p className="text-xs text-muted-foreground">{activity.note}</p>}
+                      {activity.source !== "audit" && (
+                        <p className="text-[11px] text-muted-foreground">From {activity.source === "sale" ? "sales" : "stock"} records</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(activity.created_at).toLocaleString()}
                       </p>
