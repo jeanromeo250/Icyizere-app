@@ -234,9 +234,12 @@ export function useProducts() {
 
   const deleteProduct = async (id: string) => {
     const { error } = await db.from("products").delete().eq("id", id);
-    if (!error) {
-      setProducts((prev) => prev.filter((item) => item.id !== id));
+    if (error) {
+      console.error("Failed to delete product:", error);
+      return error;
     }
+    setProducts((prev) => prev.filter((item) => item.id !== id));
+    return null;
   };
 
   return { products, addProduct, updateProduct, deleteProduct, setProducts, loading };

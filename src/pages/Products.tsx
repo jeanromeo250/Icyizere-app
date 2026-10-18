@@ -8,10 +8,12 @@ import PageHeader from "@/components/PageHeader";
 import { useProducts, Product } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Products() {
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const { role, permissions } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -52,6 +54,19 @@ export default function Products() {
     }
     setEditing(null);
     setDialogOpen(false);
+  };
+
+  const handleDelete = async (product: Product) => {
+    const error = await deleteProduct(product.id);
+    if (error) {
+      toast({
+        title: "Unable to delete product",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Product deleted", description: `${product.name} was deleted.` });
   };
 
   return (
@@ -133,7 +148,7 @@ export default function Products() {
                 )}
                 {canDelete && (
                   <button
-                    onClick={() => deleteProduct(product.id)}
+                    onClick={() => handleDelete(product)}
                     disabled={isAddingNew}
                     className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
